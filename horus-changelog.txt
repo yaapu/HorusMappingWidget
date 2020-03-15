@@ -1,0 +1,9 @@
+Horus version 1.0 (first public release)
+
+- per model configuration via menu
+- offline mapping widget 4x2 tiles 100x100 pixel
+- map zoom toggle via radio channel
+- up to 10 per model user selectable sensors
+
+
+
