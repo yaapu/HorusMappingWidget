@@ -10,5 +10,15 @@ For basic functionality it only requires a **GPS sensor**.
 
 It supports Ardupilot, iNAV, Crossfire and whatever FC or firmware that can send GPS info to OpenTX
 
+## User selected sensors
+
+Up to 10 user selected sensor values can be displayed on screen
+- horizontally, from left to right 1,2,3,4,5,6
+- vertically from top to bottom 7,8,9,10
+
+![image](https://user-images.githubusercontent.com/30294218/76799958-e15d4280-67d2-11ea-801e-ef70287a568a.png)
+
+## Installation and configuration
 
 For installation and configuration please check the [wiki](https://github.com/yaapu/HorusMappingWidget/wiki)
+
