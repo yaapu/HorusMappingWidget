@@ -26,7 +26,7 @@
 ---------------------
 -- VERSION
 ---------------------
-#define VERSION "Yaapu Mapping Widget 0.1-dev"
+#define VERSION "Yaapu Mapping Widget 1.0"
 #define VERSION_CONFIG 180
 -- load and compile of lua files
 --#define LOADSCRIPT
