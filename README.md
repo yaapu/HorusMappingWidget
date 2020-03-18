@@ -1,4 +1,4 @@
-# Yaapu Horus Mapping Widget
+# Yaapu Horus Mapping Widget for iNAV
 
 Offline GPS Mapping Widget for Horus and T16 radios.
 
