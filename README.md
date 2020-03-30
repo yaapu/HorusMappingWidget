@@ -23,3 +23,10 @@ Up to 10 user selected sensor values can be displayed on screen
 
 For installation and configuration please check the [wiki](https://github.com/yaapu/HorusMappingWidget/wiki)
 
+## Donation
+
+This project is free and will always be.
+
+If you like it you can support it by making a donation!
+
+[![donate](https://user-images.githubusercontent.com/30294218/61724877-16fa7a80-ad6f-11e9-80de-9771e0b820ae.png)](https://paypal.me/yaapu)
