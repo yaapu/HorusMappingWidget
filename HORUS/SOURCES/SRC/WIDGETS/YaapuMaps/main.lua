@@ -490,7 +490,8 @@ local function telemetryEnabled()
   if getRSSI() == 0 then
     return false
   end
-    return true
+  status.hideNoTelemetry = true
+  return true
 end
 
 local function calcMinValue(value,min)
