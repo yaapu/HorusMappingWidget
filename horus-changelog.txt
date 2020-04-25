@@ -5,5 +5,15 @@ Horus version 1.0 (first public release)
 - map zoom toggle via radio channel
 - up to 10 per model user selectable sensors
 
+Horus version 1.1
+
+- fixed timer 3 reset
+- increased region of tiles transition, now tiles switch more often
+- fixed reset on model change
+- added option to change number of trailing dots up to 50
+- fixed no telem big dialog when telemetry is lost
+- added support for default_sensors_maps.lua used when no model specific sensors are found
+
+
 
 
