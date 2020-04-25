@@ -305,6 +305,7 @@ local conf = {
   mapZoomLevel = -2,
   enableMapGrid = true,
   mapToggleChannelId = nil,
+  mapTrailDots = 10,
 }
 
 local loadCycle = 0
@@ -413,7 +414,16 @@ end
 
 local function getSensorsConfigFilename()
   local info = model.getInfo()
-  return "/SCRIPTS/YAAPU/CFG/" .. string.lower(string.gsub(info.name, "[%c%p%s%z]", "").."_sensors_maps.lua")
+  local cfg = "/SCRIPTS/YAAPU/CFG/" .. string.lower(string.gsub(info.name, "[%c%p%s%z]", "").."_sensors_maps.lua")
+  local file = io.open(cfg,"r")
+  
+  if file == nil then
+    cfg = "/SCRIPTS/YAAPU/CFG/default_sensors_maps.lua"
+  else
+    io.close(file)
+  end
+  
+  return cfg
 end
 
 --------------------------
@@ -518,6 +528,85 @@ utils.drawTopBar = function()
   lcd.drawText(350,0, vtx, 0+CUSTOM_COLOR)
 end
 
+local function reset()
+  utils.clearTable(customSensors)
+  customSensors = nil
+  -- TELEMETRY
+  utils.clearTable(telemetry)
+  --[[
+  -- STATUS 
+  telemetry.flightMode = 0
+  telemetry.simpleMode = 0
+  telemetry.landComplete = 0
+  telemetry.statusArmed = 0
+  telemetry.battFailsafe = 0
+  telemetry.ekfFailsafe = 0
+  telemetry.imuTemp = 0
+  --]]  -- GPS
+  telemetry.numSats = 0
+  telemetry.gpsStatus = 0
+  telemetry.gpsHdopC = 100
+  --[[
+  telemetry.gpsAlt = 0
+  -- BATT 1
+  telemetry.batt1volt = 0
+  telemetry.batt1current = 0
+  telemetry.batt1mah = 0
+  -- BATT 2
+  telemetry.batt2volt = 0
+  telemetry.batt2current = 0
+  telemetry.batt2mah = 0
+  --]]  -- HOME
+  telemetry.homeDist = 0
+  telemetry.homeAlt = 0
+  telemetry.homeAngle = -1
+  --[[
+  -- VELANDYAW
+  telemetry.vSpeed = 0
+  telemetry.hSpeed = 0
+  --]]  telemetry.yaw = 0
+  --[[
+  -- ROLLPITCH
+  telemetry.roll = 0
+  telemetry.pitch = 0
+  telemetry.range = 0 
+  -- PARAMS
+  telemetry.frameType = -1
+  telemetry.batt1Capacity = 0
+  telemetry.batt2Capacity = 0
+  --]]  -- GPS
+  telemetry.lat = nil
+  telemetry.lon = nil
+  telemetry.homeLat = nil
+  telemetry.homeLon = nil
+  --[[
+  -- WP
+  telemetry.wpNumber = 0
+  telemetry.wpDistance = 0
+  telemetry.wpXTError = 0
+  telemetry.wpBearing = 0
+  telemetry.wpCommands = 0
+  -- RC channels
+  telemetry.rcchannels = {}
+  -- VFR
+  telemetry.airspeed = 0
+  telemetry.throttle = 0
+  telemetry.baroAlt = 0
+  -- Total distance
+  telemetry.totalDist = 0
+  --]]  collectgarbage()
+  collectgarbage()
+  -- STATUS
+  utils.clearTable(status)
+  status.mapZoomLevel = 1
+  collectgarbage()
+  collectgarbage()
+  -- CONFIG
+  loadConfig()
+  -- SENSORS
+  utils.loadCustomSensors()
+end
+
 --------------------------------------------------------------------------------
 -- MAIN LOOP
 --------------------------------------------------------------------------------
@@ -528,7 +617,6 @@ local bgclock = 0
 -- running at 20Hz (every 50ms)
 -------------------------------
 local timer2Hz = getTime()
-
 local function backgroundTasks(myWidget)
   processTelemetry()
   
@@ -545,6 +633,18 @@ local function backgroundTasks(myWidget)
     if getTime() - timer2Hz > 50 then
       status.mapZoomLevel = utils.getMapZoomLevel(myWidget,conf,status)
       timer2Hz = getTime()
+        
+      -- frametype and model name
+      local info = model.getInfo()
+      -- model change event
+      if currentModel ~= info.name then
+        currentModel = info.name
+        -- force a model string reset
+        status.modelString = info.name
+        -- trigger reset
+        reset()
+      end
+      
     end
     
     if status.modelString == nil then
@@ -584,7 +684,6 @@ end
 
 local function init()
 
-  model.setTimer(2,{value=0})
 -- load configuration at boot and only refresh if GV(8,8) = 1
   loadConfig()
   -- load draw library

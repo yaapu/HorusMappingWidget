@@ -201,6 +201,7 @@ local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
 --------------------------
 
 
+--#define SAMPLES 10
 
 
 
@@ -418,8 +419,8 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
       tile_x,tile_y,offset_x,offset_y = coord_to_tiles(telemetry.lat,telemetry.lon)
       -- viewport relative coordinates
       myScreenX,myScreenY = getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
-      -- check if offscreen
-      local myCode = drawLib.computeOutCode(myScreenX, myScreenY, minX+17, minY+17, maxX-17, maxY-17);
+      -- check if offscreen, and increase border on X axis
+      local myCode = drawLib.computeOutCode(myScreenX, myScreenY, minX+50, minY+50, maxX-50, maxY-50);
       
       -- center vehicle on screen
       if myCode > 0 then
@@ -466,7 +467,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         collectgarbage()
         collectgarbage()
         sampleCount = sampleCount+1
-        sample = sampleCount%10
+        sample = sampleCount%conf.mapTrailDots
     end
     
     -- draw map tiles
@@ -499,9 +500,9 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
     end
     -- draw gps trace
     lcd.setColor(CUSTOM_COLOR,0xFE60)
-    for p=0, math.min(sampleCount-1,10-1)
+    for p=0, math.min(sampleCount-1,conf.mapTrailDots-1)
     do
-      if p ~= (sampleCount-1)%10 then
+      if p ~= (sampleCount-1)%conf.mapTrailDots then
         for x=1,4
         do
           for y=1,2
@@ -509,7 +510,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
             local idx = 4*(y-1)+x
             -- check if tile is on screen
             if tiles[idx] == posHistory[p][1] then
-              lcd.drawFilledRectangle(minX + (x-1)*100 + posHistory[p][2], minY + (y-1)*100 + posHistory[p][3],3,3,CUSTOM_COLOR)
+              lcd.drawFilledRectangle(minX + (x-1)*100 + posHistory[p][2]-1, minY + (y-1)*100 + posHistory[p][3]-1,3,3,CUSTOM_COLOR)
             end
           end
         end

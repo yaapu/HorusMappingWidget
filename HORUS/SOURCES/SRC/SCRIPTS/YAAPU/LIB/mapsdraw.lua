@@ -318,7 +318,7 @@ local function drawNoTelemetryData(status,telemetry,utils,telemetryEnabled)
     lcd.drawFilledRectangle(90,76, 300, 80, CUSTOM_COLOR)
     lcd.setColor(CUSTOM_COLOR,0xFFFF)
     lcd.drawText(110, 85, "no telemetry data", DBLSIZE+CUSTOM_COLOR)
-    lcd.drawText(130, 120, "Yaapu Mapping Widget 1.0", SMLSIZE+CUSTOM_COLOR)
+    lcd.drawText(130, 120, "Yaapu Mapping Widget 1.1-dev", SMLSIZE+CUSTOM_COLOR)
   end
 end
 

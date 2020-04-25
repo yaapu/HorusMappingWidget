@@ -107,7 +107,7 @@ local sensors = {
   },
 [10]=  {
     "Curr",   -- label
-    "CURR",     -- OpenTX sensor name
+    "Curr",     -- OpenTX sensor name
     1,          -- precision: number of decimals 0,1,2
     "A",         -- label for unit of measure
     1,          -- multiplier if < 1 than divides

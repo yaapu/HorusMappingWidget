@@ -201,6 +201,7 @@ local menuItems = {
   {"map zoom level:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
   {"map type:", 1, "MAPT", 1, { "satellite", "map", "terrain" }, { "sat_tiles", "tiles", "ter_tiles" } },
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
+  {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
   {"map zoom channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
 }
 
@@ -258,6 +259,7 @@ local function applyConfigValues(conf)
   
   conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
   conf.mapType = getMenuItemByName(menuItems,"MAPT")
+  conf.mapTrailDots = getMenuItemByName(menuItems,"MAPTD")
   
   local chInfo = getFieldInfo("ch"..getMenuItemByName(menuItems,"ZTC"))
   conf.mapToggleChannelId = (chInfo == nil and -1 or chInfo['id'])
@@ -330,7 +332,7 @@ local function drawConfigMenuBars()
   lcd.drawFilledRectangle(0,LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,0xFFFF)  
-  lcd.drawText(2,0,"Yaapu Mapping Widget 1.0",CUSTOM_COLOR)
+  lcd.drawText(2,0,"Yaapu Mapping Widget 1.1-dev",CUSTOM_COLOR)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end
