@@ -529,7 +529,8 @@ local function drawCustomSensors(x,customSensors,utils,status)
     --[[
     lcd.setColor(CUSTOM_COLOR,COLOR_SENSORS)
     lcd.drawFilledRectangle(0,194,LCD_W,35,CUSTOM_COLOR)
-    --]]    lcd.setColor(CUSTOM_COLOR,0x0000)
+    --]]
+    lcd.setColor(CUSTOM_COLOR,0x0000)
     lcd.drawRectangle(400,18,80,201,CUSTOM_COLOR)
     for l=1,3
     do
@@ -541,6 +542,7 @@ local function drawCustomSensors(x,customSensors,utils,status)
       if customSensors.sensors[i] ~= nil then 
         sensorConfig = customSensors.sensors[i]
         
+        -- check if sensor is a timer
         if sensorConfig[4] == "" then
           label = string.format("%s",sensorConfig[1])
         else
@@ -550,36 +552,49 @@ local function drawCustomSensors(x,customSensors,utils,status)
         lcd.setColor(CUSTOM_COLOR,0x8C71)
         lcd.drawText(x+customSensorXY[i][1], customSensorXY[i][2],label, SMLSIZE+RIGHT+CUSTOM_COLOR)
         
-        mult =  sensorConfig[3] == 0 and 1 or ( sensorConfig[3] == 1 and 10 or 100 )
-        prec =  mult == 1 and 0 or (mult == 10 and 32 or 48)
-        
-        local sensorName = sensorConfig[2]..(status.showMinMaxValues == true and sensorConfig[6] or "")
-        local sensorValue = getValue(sensorName) 
-        local value = (sensorValue+(mult == 100 and 0.005 or 0))*mult*sensorConfig[5]        
-        
-        -- default font size
-        flags = sensorConfig[7] == 1 and 0 or MIDSIZE
-        
-        -- for sensor 3,4,5,6 reduce font if necessary
-        if math.abs(value)*mult > 99999 then
-          flags = 0
-        end
-        
-        local color = 0xFFFF
-        local sign = sensorConfig[6] == "+" and 1 or -1
-        -- max tracking, high values are critical
-        if math.abs(value) ~= 0 and status.showMinMaxValues == false then
-          color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and 0xFE60 or 0xFFFF))
-        end
-        
-        lcd.setColor(CUSTOM_COLOR,color)
-        
-        local voffset = flags==0 and 6 or 0
-        -- if a lookup table exists use it!
-        if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
-          lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, customSensors.lookups[i][value] or value, flags+RIGHT+CUSTOM_COLOR)
+        local timerId = string.match(string.lower(sensorConfig[2]), "timer(%d+)")
+        if timerId ~= nil then
+          lcd.setColor(CUSTOM_COLOR,0xFFFF)
+          -- lua timers are zero based
+          if tonumber(timerId) > 0 then
+            timerId = tonumber(timerId) -1
+          end
+          -- default font size
+          flags = sensorConfig[7] == 1 and 0 or MIDSIZE
+          local voffset = flags==0 and 6 or 0
+          lcd.drawTimer(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, model.getTimer(timerId).value, flags+CUSTOM_COLOR+RIGHT)
         else
-          lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, value, flags+RIGHT+prec+CUSTOM_COLOR)
+          mult =  sensorConfig[3] == 0 and 1 or ( sensorConfig[3] == 1 and 10 or 100 )
+          prec =  mult == 1 and 0 or (mult == 10 and 32 or 48)
+          
+          local sensorName = sensorConfig[2]..(status.showMinMaxValues == true and sensorConfig[6] or "")
+          local sensorValue = getValue(sensorName) 
+          local value = (sensorValue+(mult == 100 and 0.005 or 0))*mult*sensorConfig[5]        
+          
+          -- default font size
+          flags = sensorConfig[7] == 1 and 0 or MIDSIZE
+          
+          -- for sensor 3,4,5,6 reduce font if necessary
+          if math.abs(value)*mult > 99999 then
+            flags = 0
+          end
+          
+          local color = 0xFFFF
+          local sign = sensorConfig[6] == "+" and 1 or -1
+          -- max tracking, high values are critical
+          if math.abs(value) ~= 0 and status.showMinMaxValues == false then
+            color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and 0xFE60 or 0xFFFF))
+          end
+          
+          lcd.setColor(CUSTOM_COLOR,color)
+          
+          local voffset = flags==0 and 6 or 0
+          -- if a lookup table exists use it!
+          if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
+            lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, customSensors.lookups[i][value] or value, flags+RIGHT+CUSTOM_COLOR)
+          else
+            lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, value, flags+RIGHT+prec+CUSTOM_COLOR)
+          end
         end
       end
     end
