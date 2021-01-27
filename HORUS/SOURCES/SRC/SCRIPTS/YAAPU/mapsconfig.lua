@@ -199,8 +199,8 @@ example {"center pane layout:", TYPECOMBO, "CPANE", 1, { "hud","radar" }, { 1, 2
 --]]--
 local menuItems = {
   {"map zoom level 1:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
-  {"map zoom level 2:", 0, "MAPZ-MID", -2, -2, 17,nil,0,1 },
-  {"map zoom level 3:", 0, "MAPZ-HIGH", -2, -2, 17,nil,0,1 },
+  {"map zoom level 2:", 0, "MAPZMID", -1, -2, 17,nil,0,1 },
+  {"map zoom level 3:", 0, "MAPZHIGH", 0, -2, 17,nil,0,1 },
   {"map type:", 1, "MAPT", 1, { "satellite", "map", "terrain" }, { "sat_tiles", "tiles", "ter_tiles" } },
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
   {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
@@ -260,8 +260,8 @@ local function applyConfigValues(conf)
   end
   
   conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
-  conf.mapZoomLevelMid = getMenuItemByName(menuItems,"MAPZ-MID")
-  conf.mapZoomLevelHigh = getMenuItemByName(menuItems,"MAPZ-HIGH")
+  conf.mapZoomLevelMid = getMenuItemByName(menuItems,"MAPZMID")
+  conf.mapZoomLevelHigh = getMenuItemByName(menuItems,"MAPZHIGH")
   conf.mapType = getMenuItemByName(menuItems,"MAPT")
   conf.mapTrailDots = getMenuItemByName(menuItems,"MAPTD")
   
