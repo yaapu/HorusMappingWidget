@@ -303,6 +303,8 @@ local currentPage = 0
 local conf = {
   mapType = "sat_tiles",
   mapZoomLevel = -2,
+  mapZoomLevelMid = -1,
+  mapZoomLevelHigh = 0,
   enableMapGrid = true,
   mapToggleChannelId = nil,
   mapTrailDots = 10,
@@ -741,11 +743,11 @@ utils.getMapZoomLevel = function(myWidget,conf,status)
   
   if conf.mapToggleChannelId > -1 then
     if chValue >= 600 then
-      return conf.mapZoomLevel + 2
+      return conf.mapZoomLevelHigh
     end
     
     if chValue > - 600 and chValue < 600 then
-      return conf.mapZoomLevel + 1
+      return conf.mapZoomLevelMid
     end
   end
   return conf.mapZoomLevel
