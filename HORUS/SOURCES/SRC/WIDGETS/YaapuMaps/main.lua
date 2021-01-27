@@ -377,10 +377,10 @@ utils.getHomeFromAngleAndDistance = function(telemetry)
   d be distance (m),
   R as radius of Earth (m),
   Ad be the angular distance i.e d/R and
-  θ be the bearing in deg
+  ? be the bearing in deg
   
-  la2 =  asin(sin la1 * cos Ad  + cos la1 * sin Ad * cos θ), and
-  lo2 = lo1 + atan2(sin θ * sin Ad * cos la1 , cos Ad – sin la1 * sin la2)
+  la2 =  asin(sin la1 * cos Ad  + cos la1 * sin Ad * cos ?), and
+  lo2 = lo1 + atan2(sin ? * sin Ad * cos la1 , cos Ad – sin la1 * sin la2)
 --]]  if telemetry.lat == nil or telemetry.lon == nil then
     return nil,nil
   end
@@ -469,7 +469,7 @@ local function calcHomeDirection(gpsPos)
   if gpsHome == false then
     return false
   end
-  -- Formula:	θ = atan2( sin Δλ ⋅ cos φ2 , cos φ1 ⋅ sin φ2 − sin φ1 ⋅ cos φ2 ⋅ cos Δλ )
+  -- Formula:	? = atan2( sin ?? · cos f2 , cos f1 · sin f2 - sin f1 · cos f2 · cos ?? )
   local lat2 = math.rad(gpsHome.lat)
   local lon2 = math.rad(gpsHome.lon)
   local lat1 = math.rad(gpsPos.lat)
@@ -746,7 +746,7 @@ utils.getMapZoomLevel = function(myWidget,conf,status)
       return conf.mapZoomLevelHigh
     end
     
-    if chValue > - 600 and chValue < 600 then
+    if chValue > -600 and chValue < 600 then
       return conf.mapZoomLevelMid
     end
   end
