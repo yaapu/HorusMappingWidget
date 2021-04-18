@@ -135,8 +135,32 @@ local sensors = {
 local lookups = {
 }
 
+------------------------------------------------------
+-- the widget can optionally look up valid zoom levels
+-- and skip not listed ones
+-- an "nil" array disables the feature and all zoom levels between
+-- min max will be used
+-- example for disabled feature
+--
+--local zoomLevels = nil
+--
+-- example
+--local zoomLevels = {
+--  [-2] = true,
+--  [-1] = true,
+--  [1] = true,
+--}
+-- this would enable zoom levels -2,-1,1 skipping 0 and all levels > 1
+-- 
+local zoomLevels = {
+  [-2] = true,
+  [-1] = true,
+  [0] = true,
+  [3] = true,
+}
+
 collectgarbage()
 
 return {
-  sensors=sensors,lookups=lookups
+  sensors=sensors,lookups=lookups,zoomLevels=zoomLevels
 }

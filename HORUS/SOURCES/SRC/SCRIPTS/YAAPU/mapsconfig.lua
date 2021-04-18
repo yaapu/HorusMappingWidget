@@ -47,6 +47,7 @@
 -- DEV FEATURE CONFIG
 ---------------------
 -- enable memory debuging 
+--#define MEMDEBUG
 -- enable dev code
 --#define DEV
 -- uncomment haversine calculation routine
@@ -198,10 +199,17 @@ example {"center pane layout:", TYPECOMBO, "CPANE", 1, { "hud","radar" }, { 1, 2
 
 --]]--
 local menuItems = {
-  {"map zoom level:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
+  {"heading sensor:", 1, "HDGT", 1, { "Hdg", "Yaw" }, { "Hdg", "Yaw" } },
+  {"heading sensor unit:", 1, "HDGU", 1, { "deg", "rad" }, { 1, 57.29578 } }, -- radians to degrees rad * (180/pi)
+  {"telemetry sensor config file:", 1, "SEN", 1, { "model", "profile 1", "profile 2", "profile 3" }, { 0, 1, 2, 3 } },
+  {"map provider:", 1, "MAPP", 1, { "GMapCatcher", "Google" }, { 1, 2 } },
   {"map type:", 1, "MAPT", 1, { "satellite", "map", "terrain" }, { "sat_tiles", "tiles", "ter_tiles" } },
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
-  {"map zoom channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
+  {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
+  {"emulated wheel channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
+  {"map default zoom level:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
+  {"map min zoom level:", 0, "MAPmZ", -2, -2, 17,nil,0,1 },
+  {"map max zoom level:", 0, "MAPMZ", 17, -2, 17,nil,0,1 },
 }
 
 local menu  = {
@@ -238,6 +246,85 @@ end
 local function updateMenuItems()
   if menu.updated == true then
     -- no dynamic menus yet
+    
+    value, name, idx = getMenuItemByName(menuItems,"MAPP")
+    
+    if value == nil then
+      return
+    end
+    
+    local value2, name2, idx2 = getMenuItemByName(menuItems,"MAPT")
+    
+    if value2 ~= nil then
+      if value == 1 then --GMapCatcher
+        menuItems[idx2][5] = { "satellite", "map", "terrain" }
+        menuItems[idx2][6] = { "sat_tiles", "tiles", "ter_tiles" }
+      elseif value == 2 then -- Google
+        menuItems[idx2][5] = { "GoogleSatelliteMap", "GoogleHybridMap", "GoogleMap", "GoogleTerrainMap" }
+        menuItems[idx2][6] = { "GoogleSatelliteMap", "GoogleHybridMap", "GoogleMap", "GoogleTerrainMap" }
+      end
+      
+      if menuItems[idx2][4] > #menuItems[idx2][5] then
+        menuItems[idx2][4] = 1
+      end
+    end
+    
+    value2, name2, idx2 = getMenuItemByName(menuItems,"MAPmZ")
+    
+    if value2 ~= nil then
+      if value == 1 then        -- GMapCatcher
+        menuItems[idx2][5] = -2
+        menuItems[idx2][6] = 17
+      
+        menuItems[idx2][4] = math.max(-2,menuItems[idx2][4])
+      else                      -- Google
+        menuItems[idx2][5] = 1
+        menuItems[idx2][6] = 20
+        
+        menuItems[idx2][4] = math.max(1,menuItems[idx2][4])
+      end
+    end
+    
+    value2, name2, idx2 = getMenuItemByName(menuItems,"MAPMZ")
+    
+    if value2 ~= nil then
+      if value == 1 then        -- GMapCatcher
+        menuItems[idx2][5] = -2
+        menuItems[idx2][6] = 17
+        
+        menuItems[idx2][4] = math.min(17,menuItems[idx2][4])
+      else                      -- Google
+        menuItems[idx2][5] = 1
+        menuItems[idx2][6] = 20
+        
+        menuItems[idx2][4] = math.min(20,menuItems[idx2][4])
+      end
+    end
+    
+    value2, name2, idx2 = getMenuItemByName(menuItems,"MAPZ")
+    
+    if value2 ~= nil then
+      if value == 1 then        -- GMapCatcher
+        menuItems[idx2][5] = -2
+        menuItems[idx2][6] = 17
+        if value2 > 17 then
+          menuItems[idx2][4] = 17
+        end
+        if value2 < -2 then
+          menuItems[idx2][4] = -2
+        end
+      else                      -- Google
+        menuItems[idx2][5] = 1
+        menuItems[idx2][6] = 20
+        if value2 > 20 then
+          menuItems[idx2][4] = 20
+        end
+        if value2 < 1 then
+          menuItems[idx2][4] = 1
+        end
+      end
+    end
+    
     menu.updated = false
     collectgarbage()
     collectgarbage()
@@ -256,14 +343,23 @@ local function applyConfigValues(conf)
     menu.updated = false
   end
   
-  conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
   conf.mapType = getMenuItemByName(menuItems,"MAPT")
+  conf.mapTrailDots = getMenuItemByName(menuItems,"MAPTD")
+  
+  conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
+  conf.mapZoomMin = getMenuItemByName(menuItems,"MAPmZ")
+  conf.mapZoomMax = getMenuItemByName(menuItems,"MAPMZ")
   
   local chInfo = getFieldInfo("ch"..getMenuItemByName(menuItems,"ZTC"))
-  conf.mapToggleChannelId = (chInfo == nil and -1 or chInfo['id'])
+  conf.mapWheelChannelId = (chInfo == nil and -1 or chInfo['id'])
   
   conf.enableMapGrid = getMenuItemByName(menuItems,"MAPG")
+  conf.mapProvider = getMenuItemByName(menuItems,"MAPP")
   
+  conf.headingSensor = getMenuItemByName(menuItems,"HDGT")
+  conf.headingSensorUnitScale = getMenuItemByName(menuItems,"HDGU")
+  
+  conf.sensorsConfigFileType = getMenuItemByName(menuItems,"SEN")
   menu.editSelected = false
   collectgarbage()
   collectgarbage()
@@ -330,7 +426,7 @@ local function drawConfigMenuBars()
   lcd.drawFilledRectangle(0,LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,0xFFFF)  
-  lcd.drawText(2,0,"Yaapu Mapping Widget 0.1-dev",CUSTOM_COLOR)
+  lcd.drawText(2,0,"Yaapu Mapping Widget 1.2.2-dev",CUSTOM_COLOR)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end

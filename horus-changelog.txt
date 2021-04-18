@@ -5,5 +5,11 @@ Horus version 1.0 (first public release)
 - map zoom toggle via radio channel
 - up to 10 per model user selectable sensors
 
-
+Horus version 1.2.2
+- added support for timers as sensors
+- added support for google maps
+- removed limit of 3 zoom levels, now all zoom levels are usable
+- added support for defining valid zoom levels in sensor file
+- added menu option to select heading sensor and heading sensor unit between deg/rad
+- added menu option to select sensor file type: model is default, added options for profile 1,2 and 3 
 

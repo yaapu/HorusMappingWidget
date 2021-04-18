@@ -47,6 +47,7 @@
 -- DEV FEATURE CONFIG
 ---------------------
 -- enable memory debuging 
+--#define MEMDEBUG
 -- enable dev code
 --#define DEV
 -- uncomment haversine calculation routine
@@ -201,6 +202,7 @@ local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
 --------------------------
 
 
+--#define SAMPLES 10
 
 
 
@@ -265,25 +267,89 @@ local avgDistLastSampleTime = getTime();
 avgDistSamples[0] = 0
 
 
+local coord_to_tiles = nil
+local tiles_to_path = nil
+local MinLatitude = -85.05112878;
+local MaxLatitude = 85.05112878;
+local MinLongitude = -180;
+local MaxLongitude = 180;
 
 
 
-local function tiles_on_level(level)
- return bit32.lshift(1,17 - level)
+
+
+local function clip(n, min, max)
+  return math.min(math.max(n, min), max)
 end
 
-local function coord_to_tiles(lat,lon)
+local function tiles_on_level(conf,level)
+  if conf.mapProvider == 1 then
+    return bit32.lshift(1,17 - level)
+  else
+    return 2^level
+  end
+end
+
+--[[
+  total tiles on the web mercator projection = 2^zoom*2^zoom
+--]]local function get_tile_matrix_size_pixel(level)
+    local size = 2^level * 100
+    return size, size
+end
+
+--[[
+  https://developers.google.com/maps/documentation/javascript/coordinates
+  https://github.com/judero01col/GMap.NET
+  
+  Questa funzione ritorna il pixel (assoluto) associato alle coordinate.
+  La proiezione di mercatore è una matrice di pixel, tanto più grande quanto è elevato il valore dello zoom.
+  zoom 1 = 1x1 tiles
+  zoom 2 = 2x2 tiles
+  zoom 3 = 4x4 tiles
+  ...
+  in cui ogni tile è di 256x256 px.
+  in generale la matrice ha dimensioni 2^(zoom-1)*2^(zoom-1)
+  Per risalire al singolo tile si divide per 256 (largezza del tile):
+  
+  tile_x = math.floor(x_coord/256)
+  tile_y = math.floor(y_coord/256)
+  
+  Le coordinate relative all'interno del tile si calcolano con l'operatore modulo a partire dall'angolo in alto a sx
+  
+  x_offset = x_coord%256
+  y_offset = y_coord%256
+  
+  Su filesystem il percorso è /tile_y/tile_x.png
+--]]local function google_coord_to_tiles(conf, lat, lng, level)
+  lat = clip(lat, MinLatitude, MaxLatitude)
+  lng = clip(lng, MinLongitude, MaxLongitude)
+
+  local x = (lng + 180) / 360
+  local sinLatitude = math.sin(lat * math.pi / 180)
+  local y = 0.5 - math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * math.pi)
+
+  local mapSizeX, mapSizeY = get_tile_matrix_size_pixel(level)
+
+  -- absolute pixel coordinates on the mercator projection at this zoom level
+  local rx = clip(x * mapSizeX + 0.5, 0, mapSizeX - 1)
+  local ry = clip(y * mapSizeY + 0.5, 0, mapSizeY - 1)
+  -- return tile_x, tile_y, offset_x, offset_y
+  return math.floor(rx/100), math.floor(ry/100), math.floor(rx%100), math.floor(ry%100)
+end
+
+local function gmapcatcher_coord_to_tiles(conf, lat, lon, level)
   local x = world_tiles / 360 * (lon + 180)
   local e = math.sin(lat * (1/180 * math.pi))
   local y = world_tiles / 2 + 0.5 * math.log((1+e)/(1-e)) * -1 * tiles_per_radian
   return math.floor(x % world_tiles), math.floor(y % world_tiles), math.floor((x - math.floor(x)) * 100), math.floor((y - math.floor(y)) * 100)
 end
 
-local function tiles_to_path(tile_x, tile_y, level)
-  local path = string.format("/%d/%d/%d/%d/s_%d.png", level, tile_x/1024, tile_x%1024, tile_y/1024, tile_y%1024)
-  collectgarbage()
-  collectgarbage()
-  return path
+local function google_tiles_to_path(conf, tile_x, tile_y, level)
+  return string.format("/%d/%d/s_%d.jpg", level, tile_y, tile_x)
+end
+
+local function gmapcatcher_tiles_to_path(conf, tile_x, tile_y, level)
+  return string.format("/%d/%d/%d/%d/s_%d.png", level, tile_x/1024, tile_x%1024, tile_y/1024, tile_y%1024)
 end
 
 local function getTileBitmap(conf,tilePath)
@@ -318,7 +384,7 @@ local function loadAndCenterTiles(conf,tile_x,tile_y,offset_x,offset_y,width,lev
   do
     for y=1,2
     do
-      local tile_path = tiles_to_path(tile_x+x-2, tile_y+y-yy, level)
+      local tile_path = tiles_to_path(conf, tile_x+x-2, tile_y+y-yy, level)
       local idx = width*(y-1)+x
       
       if tiles[idx] == nil then
@@ -384,7 +450,7 @@ end
 
 local function getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
   -- is this tile on screen ?
-  local tile_path = tiles_to_path(tile_x,tile_y,level)
+  local tile_path = tiles_to_path(conf, tile_x, tile_y, level)
   local onScreen = false
   
   for x=1,4
@@ -403,6 +469,9 @@ local function getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,le
 end
 
 local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
+  if tiles_to_path == nil or coord_to_tiles == nil then
+    return
+  end
   local minY = 18
   local maxY = minY+2*100
   
@@ -415,21 +484,20 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
       posUpdated = true
       lastPosUpdate = getTime()
       -- current vehicle tile coordinates
-      tile_x,tile_y,offset_x,offset_y = coord_to_tiles(telemetry.lat,telemetry.lon)
+      tile_x,tile_y,offset_x,offset_y = coord_to_tiles(conf,telemetry.lat,telemetry.lon,level)
       -- viewport relative coordinates
       myScreenX,myScreenY = getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
-      -- check if offscreen
-      local myCode = drawLib.computeOutCode(myScreenX, myScreenY, minX+17, minY+17, maxX-17, maxY-17);
+      -- check if offscreen, and increase border on X axis
+      local myCode = drawLib.computeOutCode(myScreenX, myScreenY, minX+50, minY+50, maxX-50, maxY-50);
       
       -- center vehicle on screen
       if myCode > 0 then
         loadAndCenterTiles(conf, tile_x, tile_y, offset_x, offset_y, 4, level)
         -- after centering screen position needs to be computed again
-        tile_x,tile_y,offset_x,offset_y = coord_to_tiles(telemetry.lat,telemetry.lon)
+        tile_x,tile_y,offset_x,offset_y = coord_to_tiles(conf,telemetry.lat,telemetry.lon,level)
         myScreenX,myScreenY = getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
       end
     end
-    
     -- home position update
     if getTime() - lastHomePosUpdate > 50 and posUpdated then
       lastHomePosUpdate = getTime()
@@ -438,7 +506,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         homeNeedsRefresh = false
         if telemetry.homeLat ~= nil then
           -- current vehicle tile coordinates
-          tile_x,tile_y,offset_x,offset_y = coord_to_tiles(telemetry.homeLat,telemetry.homeLon)
+          tile_x,tile_y,offset_x,offset_y = coord_to_tiles(conf,telemetry.homeLat,telemetry.homeLon,level)
           -- viewport relative coordinates
           homeScreenX,homeScreenY = getScreenCoordinates(minX,minY,tile_x,tile_y,offset_x,offset_y,level)
         end
@@ -447,7 +515,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         homeNeedsRefresh = true
         estimatedHomeGps.lat,estimatedHomeGps.lon = utils.getHomeFromAngleAndDistance(telemetry)
         if estimatedHomeGps.lat ~= nil then
-          local t_x,t_y,o_x,o_y = coord_to_tiles(estimatedHomeGps.lat,estimatedHomeGps.lon)
+          local t_x,t_y,o_x,o_y = coord_to_tiles(conf,estimatedHomeGps.lat,estimatedHomeGps.lon,level)
           -- viewport relative coordinates
           estimatedHomeScreenX,estimatedHomeScreenY = getScreenCoordinates(minX,minY,t_x,t_y,o_x,o_y,level)        
         end
@@ -461,17 +529,18 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         lastPosSample = getTime()
         posUpdated = false
         -- points history
-        local path = tiles_to_path(tile_x, tile_y, level)
+        local path = tiles_to_path(conf, tile_x, tile_y, level)
         posHistory[sample] = { path, offset_x, offset_y }
         collectgarbage()
         collectgarbage()
         sampleCount = sampleCount+1
-        sample = sampleCount%10
+        sample = sampleCount%conf.mapTrailDots
     end
     
     -- draw map tiles
     lcd.setColor(CUSTOM_COLOR,0xFE60)
     drawTiles(conf,drawLib,utils,4,minX,maxX,minY,maxY,CUSTOM_COLOR,level)
+    
     -- draw home
     if telemetry.homeLat ~= nil and telemetry.homeLon ~= nil and homeScreenX ~= nil then
       local homeCode = drawLib.computeOutCode(homeScreenX, homeScreenY, minX+11, minY+10, maxX-11, maxY-10);
@@ -499,9 +568,9 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
     end
     -- draw gps trace
     lcd.setColor(CUSTOM_COLOR,0xFE60)
-    for p=0, math.min(sampleCount-1,10-1)
+    for p=0, math.min(sampleCount-1,conf.mapTrailDots-1)
     do
-      if p ~= (sampleCount-1)%10 then
+      if p ~= (sampleCount-1)%conf.mapTrailDots then
         for x=1,4
         do
           for y=1,2
@@ -509,7 +578,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
             local idx = 4*(y-1)+x
             -- check if tile is on screen
             if tiles[idx] == posHistory[p][1] then
-              lcd.drawFilledRectangle(minX + (x-1)*100 + posHistory[p][2], minY + (y-1)*100 + posHistory[p][3],3,3,CUSTOM_COLOR)
+              lcd.drawFilledRectangle(minX + (x-1)*100 + posHistory[p][2]-1, minY + (y-1)*100 + posHistory[p][3]-1,3,3,CUSTOM_COLOR)
             end
           end
         end
@@ -528,7 +597,8 @@ local function drawCustomSensors(x,customSensors,utils,status)
     --[[
     lcd.setColor(CUSTOM_COLOR,COLOR_SENSORS)
     lcd.drawFilledRectangle(0,194,LCD_W,35,CUSTOM_COLOR)
-    --]]    lcd.setColor(CUSTOM_COLOR,0x0000)
+    --]]
+    lcd.setColor(CUSTOM_COLOR,0x0000)
     lcd.drawRectangle(400,18,80,201,CUSTOM_COLOR)
     for l=1,3
     do
@@ -540,6 +610,7 @@ local function drawCustomSensors(x,customSensors,utils,status)
       if customSensors.sensors[i] ~= nil then 
         sensorConfig = customSensors.sensors[i]
         
+        -- check if sensor is a timer
         if sensorConfig[4] == "" then
           label = string.format("%s",sensorConfig[1])
         else
@@ -549,44 +620,59 @@ local function drawCustomSensors(x,customSensors,utils,status)
         lcd.setColor(CUSTOM_COLOR,0x8C71)
         lcd.drawText(x+customSensorXY[i][1], customSensorXY[i][2],label, SMLSIZE+RIGHT+CUSTOM_COLOR)
         
-        mult =  sensorConfig[3] == 0 and 1 or ( sensorConfig[3] == 1 and 10 or 100 )
-        prec =  mult == 1 and 0 or (mult == 10 and 32 or 48)
-        
-        local sensorName = sensorConfig[2]..(status.showMinMaxValues == true and sensorConfig[6] or "")
-        local sensorValue = getValue(sensorName) 
-        local value = (sensorValue+(mult == 100 and 0.005 or 0))*mult*sensorConfig[5]        
-        
-        -- default font size
-        flags = sensorConfig[7] == 1 and 0 or MIDSIZE
-        
-        -- for sensor 3,4,5,6 reduce font if necessary
-        if math.abs(value)*mult > 99999 then
-          flags = 0
-        end
-        
-        local color = 0xFFFF
-        local sign = sensorConfig[6] == "+" and 1 or -1
-        -- max tracking, high values are critical
-        if math.abs(value) ~= 0 and status.showMinMaxValues == false then
-          color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and 0xFE60 or 0xFFFF))
-        end
-        
-        lcd.setColor(CUSTOM_COLOR,color)
-        
-        local voffset = flags==0 and 6 or 0
-        -- if a lookup table exists use it!
-        if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
-          lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, customSensors.lookups[i][value] or value, flags+RIGHT+CUSTOM_COLOR)
+        local timerId = string.match(string.lower(sensorConfig[2]), "timer(%d+)")
+        if timerId ~= nil then
+          lcd.setColor(CUSTOM_COLOR,0xFFFF)
+          -- lua timers are zero based
+          if tonumber(timerId) > 0 then
+            timerId = tonumber(timerId) -1
+          end
+          -- default font size
+          flags = sensorConfig[7] == 1 and 0 or MIDSIZE
+          local voffset = flags==0 and 6 or 0
+          lcd.drawTimer(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, model.getTimer(timerId).value, flags+CUSTOM_COLOR+RIGHT)
         else
-          lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, value, flags+RIGHT+prec+CUSTOM_COLOR)
+          mult =  sensorConfig[3] == 0 and 1 or ( sensorConfig[3] == 1 and 10 or 100 )
+          prec =  mult == 1 and 0 or (mult == 10 and 32 or 48)
+          
+          local sensorName = sensorConfig[2]..(status.showMinMaxValues == true and sensorConfig[6] or "")
+          local sensorValue = getValue(sensorName) 
+          local value = (sensorValue+(mult == 100 and 0.005 or 0))*mult*sensorConfig[5]        
+          
+          -- default font size
+          flags = sensorConfig[7] == 1 and 0 or MIDSIZE
+          
+          -- for sensor 3,4,5,6 reduce font if necessary
+          if math.abs(value)*mult > 99999 then
+            flags = 0
+          end
+          
+          local color = 0xFFFF
+          local sign = sensorConfig[6] == "+" and 1 or -1
+          -- max tracking, high values are critical
+          if math.abs(value) ~= 0 and status.showMinMaxValues == false then
+            color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and 0xFE60 or 0xFFFF))
+          end
+          
+          lcd.setColor(CUSTOM_COLOR,color)
+          
+          local voffset = flags==0 and 6 or 0
+          -- if a lookup table exists use it!
+          if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
+            lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, customSensors.lookups[i][value] or value, flags+RIGHT+CUSTOM_COLOR)
+          else
+            lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, value, flags+RIGHT+prec+CUSTOM_COLOR)
+          end
         end
       end
     end
 end
 
-local initDone = false
-
-local function init(utils,level)
+local function init(conf,utils,level)
+  if level == nil then
+    return
+  end
+  
   if level ~= lastZoomLevel then
     utils.clearTable(tiles)
     
@@ -596,26 +682,38 @@ local function init(utils,level)
     sample = 0
     sampleCount = 0    
     
-    world_tiles = tiles_on_level(level)
+    world_tiles = tiles_on_level(conf, level)
     tiles_per_radian = world_tiles / (2 * math.pi)
-    tile_dim = (40075017/world_tiles) * unitScale -- m or ft
   
-    scaleLen = ((unitScale==1 and 1 or 3)*50*(level+3)/tile_dim)*100
+    if conf.mapProvider == 1 then
+      coord_to_tiles = gmapcatcher_coord_to_tiles
+      tiles_to_path = gmapcatcher_tiles_to_path
+      tile_dim = (40075017/world_tiles) * unitScale -- m or ft
+      scaleLabel = tostring((unitScale==1 and 1 or 3)*50*2^(level+2))..unitLabel
+      scaleLen = ((unitScale==1 and 1 or 3)*50*2^(level+2)/tile_dim)*100
+    elseif conf.mapProvider == 2 then
+      coord_to_tiles = google_coord_to_tiles
+      tiles_to_path = google_tiles_to_path
+      tile_dim = (40075017/world_tiles) * unitScale -- m or ft
+      scaleLabel = tostring((unitScale==1 and 1 or 3)*50*2^(20-level))..unitLabel
+      scaleLen = ((unitScale==1 and 1 or 3)*50*2^(20-level)/tile_dim)*100
+    end
+--[[    
+    tile_dim = (40075017/world_tiles) * unitScale -- m or ft
+    scaleLen = ((unitScale==1 and 1 or 3)*50*(level+3)/tile_dim)*TILES_SIZE
     scaleLabel = tostring((unitScale==1 and 1 or 3)*50*(level+3))..unitLabel
-    
-    lastZoomLevel = level
+--]]    lastZoomLevel = level
   end
-end
-
-local function changeZoomLevel(level)
 end
 
 local function draw(myWidget,drawLib,conf,telemetry,status,battery,alarms,frame,utils,customSensors,gpsStatuses,leftPanel,centerPanel,rightPanel)
   -- initialize maps
-  init(utils,status.mapZoomLevel)
+  init(conf, utils, status.mapZoomLevel)
   drawMap(myWidget,drawLib,conf,telemetry,status,utils,status.mapZoomLevel)
-  --drawHud(myWidget,drawLib,conf,telemetry,status,battery,utils)
-  utils.drawTopBar()
+  --[[ 
+  -- No HUD support for now
+  drawHud(myWidget,drawLib,conf,telemetry,status,battery,utils)
+  --]]  utils.drawTopBar()
   -- bottom bar
   lcd.setColor(CUSTOM_COLOR,0x0000)
   lcd.drawFilledRectangle(0,200+18,480,LCD_H-(200+18),CUSTOM_COLOR)
@@ -634,5 +732,5 @@ end
 local function background(myWidget,conf,telemetry,status,utils)
 end
 
-return {draw=draw,background=background,changeZoomLevel=changeZoomLevel}
+return {draw=draw,background=background}
 

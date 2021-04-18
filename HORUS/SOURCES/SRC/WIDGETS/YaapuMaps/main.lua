@@ -47,6 +47,7 @@
 -- DEV FEATURE CONFIG
 ---------------------
 -- enable memory debuging 
+--#define MEMDEBUG
 -- enable dev code
 --#define DEV
 -- uncomment haversine calculation routine
@@ -263,7 +264,7 @@ local gpsHome = false
 --------------------------------
 local status = {}
 -- MAP
-status.mapZoomLevel = 1
+status.mapZoomLevel = nil
 
 ---------------------------
 -- LIBRARY LOADING
@@ -302,15 +303,22 @@ local currentPage = 0
 --------------------------------------------------------------------------------
 local conf = {
   mapType = "sat_tiles",
-  mapZoomLevel = -2,
   enableMapGrid = true,
-  mapToggleChannelId = nil,
+  mapWheelChannelId = nil, -- used as wheel emulator
+  mapTrailDots = 10,
+  mapZoomLevel = -2, -- deprecated
+  mapZoomMax = 17,
+  mapZoomMin = -2,
+  mapProvider = 1, -- 1 GMapCatcher, 2 Google
+  headingSensor = "Hdg",
+  headingSensorUnitScale = 1,
+  sensorsConfigFileType = 0 -- model
 }
 
 local loadCycle = 0
 
 utils.doLibrary = function(filename)
-  local f = assert(loadScript(libBasePath..filename..".lua"))
+  local f = assert(loadScript(libBasePath..filename..".lua","c"))
   collectgarbage()
   collectgarbage()
   return f()
@@ -342,6 +350,9 @@ local function loadConfig()
   utils.clearTable(menuLib)
   utils.clearTable(mapLayout)
   mapLayout = nil
+  utils.clearTable(customSensors)
+    -- load custom sensors
+  utils.loadCustomSensors()
   collectgarbage()
   collectgarbage()
 end
@@ -412,8 +423,21 @@ utils.drawBlinkBitmap = function(bitmap,x,y)
 end
 
 local function getSensorsConfigFilename()
-  local info = model.getInfo()
-  return "/SCRIPTS/YAAPU/CFG/" .. string.lower(string.gsub(info.name, "[%c%p%s%z]", "").."_sensors_maps.lua")
+  local cfg = nil
+  if conf.sensorsConfigFileType == 0 then
+    local info = model.getInfo()
+    cfg = "/SCRIPTS/YAAPU/CFG/" .. string.lower(string.gsub(info.name, "[%c%p%s%z]", "").."_sensors_maps.lua")
+    local file = io.open(cfg,"r")
+  
+    if file == nil then
+      cfg = "/SCRIPTS/YAAPU/CFG/default_sensors_maps.lua"
+    else
+      io.close(file)
+    end
+  else
+    cfg = "/SCRIPTS/YAAPU/CFG/profile_"..conf.sensorsConfigFileType.."_sensors_maps.lua"
+  end
+  return cfg
 end
 
 --------------------------
@@ -473,14 +497,15 @@ end
 
 local function processTelemetry()
   -- YAW
-  telemetry.yaw = getValue("Hdg")
+  telemetry.yaw = getValue(conf.headingSensor) * conf.headingSensorUnitScale
 end
 
 local function telemetryEnabled()
   if getRSSI() == 0 then
     return false
   end
-    return true
+  status.hideNoTelemetry = true
+  return true
 end
 
 local function calcMinValue(value,min)
@@ -518,6 +543,85 @@ utils.drawTopBar = function()
   lcd.drawText(350,0, vtx, 0+CUSTOM_COLOR)
 end
 
+local function reset()
+  utils.clearTable(customSensors)
+  customSensors = nil
+  -- TELEMETRY
+  utils.clearTable(telemetry)
+  --[[
+  -- STATUS 
+  telemetry.flightMode = 0
+  telemetry.simpleMode = 0
+  telemetry.landComplete = 0
+  telemetry.statusArmed = 0
+  telemetry.battFailsafe = 0
+  telemetry.ekfFailsafe = 0
+  telemetry.imuTemp = 0
+  --]]  -- GPS
+  telemetry.numSats = 0
+  telemetry.gpsStatus = 0
+  telemetry.gpsHdopC = 100
+  --[[
+  telemetry.gpsAlt = 0
+  -- BATT 1
+  telemetry.batt1volt = 0
+  telemetry.batt1current = 0
+  telemetry.batt1mah = 0
+  -- BATT 2
+  telemetry.batt2volt = 0
+  telemetry.batt2current = 0
+  telemetry.batt2mah = 0
+  --]]  -- HOME
+  telemetry.homeDist = 0
+  telemetry.homeAlt = 0
+  telemetry.homeAngle = -1
+  --[[
+  -- VELANDYAW
+  telemetry.vSpeed = 0
+  telemetry.hSpeed = 0
+  --]]  telemetry.yaw = 0
+  --[[
+  -- ROLLPITCH
+  telemetry.roll = 0
+  telemetry.pitch = 0
+  telemetry.range = 0 
+  -- PARAMS
+  telemetry.frameType = -1
+  telemetry.batt1Capacity = 0
+  telemetry.batt2Capacity = 0
+  --]]  -- GPS
+  telemetry.lat = nil
+  telemetry.lon = nil
+  telemetry.homeLat = nil
+  telemetry.homeLon = nil
+  --[[
+  -- WP
+  telemetry.wpNumber = 0
+  telemetry.wpDistance = 0
+  telemetry.wpXTError = 0
+  telemetry.wpBearing = 0
+  telemetry.wpCommands = 0
+  -- RC channels
+  telemetry.rcchannels = {}
+  -- VFR
+  telemetry.airspeed = 0
+  telemetry.throttle = 0
+  telemetry.baroAlt = 0
+  -- Total distance
+  telemetry.totalDist = 0
+  --]]  collectgarbage()
+  collectgarbage()
+  -- STATUS
+  utils.clearTable(status)
+  status.mapZoomLevel = nil
+  collectgarbage()
+  collectgarbage()
+  -- CONFIG
+  loadConfig()
+  -- SENSORS
+  utils.loadCustomSensors()
+end
+
 --------------------------------------------------------------------------------
 -- MAIN LOOP
 --------------------------------------------------------------------------------
@@ -528,6 +632,7 @@ local bgclock = 0
 -- running at 20Hz (every 50ms)
 -------------------------------
 local timer2Hz = getTime()
+local timerWheel = getTime()
 
 local function backgroundTasks(myWidget)
   processTelemetry()
@@ -543,8 +648,25 @@ local function backgroundTasks(myWidget)
     end
     
     if getTime() - timer2Hz > 50 then
-      status.mapZoomLevel = utils.getMapZoomLevel(myWidget,conf,status)
+      
+      -- handle wheel emulation
+      if getTime() - timerWheel > 200 then
+        status.mapZoomLevel = utils.getMapZoomLevel(myWidget,conf,status,customSensors)
+        timerWheel = getTime()
+      end      
       timer2Hz = getTime()
+        
+      -- frametype and model name
+      local info = model.getInfo()
+      -- model change event
+      if currentModel ~= info.name then
+        currentModel = info.name
+        -- force a model string reset
+        status.modelString = info.name
+        -- trigger reset
+        reset()
+      end
+      
     end
     
     if status.modelString == nil then
@@ -584,9 +706,10 @@ end
 
 local function init()
 
-  model.setTimer(2,{value=0})
 -- load configuration at boot and only refresh if GV(8,8) = 1
   loadConfig()
+  -- zoom initialize
+  status.mapZoomLevel = conf.mapZoomLevel
   -- load draw library
   drawLib = utils.doLibrary(drawLibFile)
 
@@ -635,20 +758,84 @@ local function fullScreenRequired(myWidget)
   lcd.drawText(myWidget.zone.x,myWidget.zone.y+16,"full screen",SMLSIZE+CUSTOM_COLOR)
 end
 
-
-utils.getMapZoomLevel = function(myWidget,conf,status)
-  local chValue = getValue(conf.mapToggleChannelId)
-  
-  if conf.mapToggleChannelId > -1 then
-    if chValue >= 600 then
-      return conf.mapZoomLevel + 2
-    end
-    
-    if chValue > - 600 and chValue < 600 then
-      return conf.mapZoomLevel + 1
+utils.validateZoomLevel = function(newZoom,conf,status,zoomLevels)
+  -- no valid zoom table, all levels are allowed
+  if zoomLevels == nil then
+    return newZoom
+  end
+  -- check against valid zoom levels table
+  if zoomLevels ~= nil then
+    if zoomLevels[newZoom] == true then
+      -- ok this level is allowed
+      return newZoom
     end
   end
-  return conf.mapZoomLevel
+  -- not allowed, stick with current zoom
+  return status.mapZoomLevel
+end
+
+utils.decZoomLevel = function(conf,status,zoomLevels)
+  local newZoom = status.mapZoomLevel == nil and conf.mapZoomLevel or status.mapZoomLevel
+  while newZoom > conf.mapZoomMin
+  do
+    newZoom = newZoom - 1
+    if zoomLevels ~= nil then
+      if zoomLevels[newZoom] == true then
+        return newZoom
+      end
+    else
+      return newZoom
+    end
+  end
+  return utils.validateZoomLevel(newZoom,conf,status,zoomLevels)
+end
+
+utils.incZoomLevel = function(conf,status,zoomLevels)
+  local newZoom = status.mapZoomLevel == nil and conf.mapZoomLevel or status.mapZoomLevel
+  while newZoom < conf.mapZoomMax
+  do
+    newZoom = newZoom + 1
+    if zoomLevels ~= nil then
+      if zoomLevels[newZoom] == true then
+        return newZoom
+      end
+    else
+      return newZoom
+    end
+  end
+  return utils.validateZoomLevel(newZoom,conf,status,zoomLevels)
+end
+
+utils.getMapZoomLevel = function(myWidget,conf,status,customSensors)
+  local chValue = getValue(conf.mapWheelChannelId)
+  local newZoom = status.mapZoomLevel == nil and conf.mapZoomLevel or status.mapZoomLevel
+  local zoomLevels = nil
+  if customSensors ~= nil then
+    zoomLevels = customSensors.zoomLevels
+  end
+  if conf.mapWheelChannelId > -1 then
+    -- SW up (increase zoom detail)
+    if chValue < -600 then
+      if conf.mapProvider == 1 then
+        --return status.mapZoomLevel > conf.mapZoomMin and status.mapZoomLevel - 1 or status.mapZoomLevel
+        return utils.decZoomLevel(conf,status,zoomLevels)
+      else
+        --return status.mapZoomLevel < conf.mapZoomMax and status.mapZoomLevel + 1 or status.mapZoomLevel
+        return utils.incZoomLevel(conf,status,zoomLevels)
+      end
+    end
+    -- SW down (decrease zoom detail)
+    if chValue > 600 then
+      if conf.mapProvider == 1 then
+        --return status.mapZoomLevel < conf.mapZoomMax and status.mapZoomLevel + 1 or status.mapZoomLevel
+        return utils.incZoomLevel(conf,status,zoomLevels)
+      else
+        --return status.mapZoomLevel > conf.mapZoomMin and status.mapZoomLevel - 1 or status.mapZoomLevel
+        return utils.decZoomLevel(conf,status,zoomLevels)
+      end
+    end
+  end
+  return status.mapZoomLevel
 end
 
 -- Called when script is hidden @20Hz
@@ -689,10 +876,6 @@ local function drawFullScreen(myWidget)
   end
   
   loadCycle=(loadCycle+1)%8
-  lcd.setColor(CUSTOM_COLOR,lcd.RGB(255,0,0))
-  maxmem = math.max(maxmem,collectgarbage("count")*1024)
-  -- test with absolute coordinates
-  lcd.drawNumber(480,LCD_H-14,maxmem,SMLSIZE+MENU_TITLE_COLOR+RIGHT)
   collectgarbage()
   collectgarbage()
 end
