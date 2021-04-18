@@ -1,3 +1,5 @@
+**Check the [releases](https://github.com/yaapu/HorusMappingWidget/releases) section for latest versions**
+
 # Yaapu Horus Mapping Widget for iNAV/Betaflight
 
 Offline GPS Mapping Widget for Horus and T16 radios.
