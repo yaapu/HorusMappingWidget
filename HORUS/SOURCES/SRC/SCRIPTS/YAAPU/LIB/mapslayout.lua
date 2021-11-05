@@ -1,7 +1,7 @@
 --
 -- An FRSKY S.Port <passthrough protocol> based Telemetry script for the Horus X10 and X12 radios
 --
--- Copyright (C) 2018-2019. Alessandro Apostoli
+-- Copyright (C) 2018-2021. Alessandro Apostoli
 -- https://github.com/yaapu
 --
 -- This program is free software; you can redistribute it and/or modify
@@ -18,173 +18,25 @@
 -- along with this program; if not, see <http://www.gnu.org/licenses>.
 --
 
----------------------
--- MAIN CONFIG
--- 480x272 LCD_W x LCD_H
----------------------
-
----------------------
--- VERSION
----------------------
--- load and compile of lua files
---#define LOADSCRIPT
--- uncomment to force compile of all chunks, comment for release
---#define COMPILE
--- fix for issue OpenTX 2.2.1 on X10/X10S - https://github.com/opentx/opentx/issues/5764
-
----------------------
--- FEATURE CONFIG
----------------------
--- enable splash screen for no telemetry data
---#define SPLASH
--- enable battery percentage based on voltage
---#define BATTPERC_BY_VOLTAGE
--- enable code to draw a compass rose vs a compass ribbon
---#define COMPASS_ROSE
--- enable support for FNV hash based sound files
-
----------------------
--- DEV FEATURE CONFIG
----------------------
--- enable memory debuging 
---#define MEMDEBUG
--- enable dev code
---#define DEV
--- uncomment haversine calculation routine
---#define HAVERSINE
--- enable telemetry logging to file (experimental)
---#define LOGTELEMETRY
--- use radio channels imputs to generate fake telemetry data
---#define TESTMODE
--- enable debug of generated hash or short hash string
---#define HASHDEBUG
-
----------------------
--- DEBUG REFRESH RATES
----------------------
--- calc and show hud refresh rate
---#define HUDRATE
--- calc and show telemetry process rate
---#define BGTELERATE
-
----------------------
--- SENSOR IDS
----------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Throttle and RC use RPM sensor IDs
-
----------------------
--- BATTERY DEFAULTS
----------------------
----------------------------------
--- BACKLIGHT SUPPORT
--- GV is zero based, GV 8 = GV 9 in OpenTX
----------------------------------
----------------------------------
--- CONF REFRESH GV
----------------------------------
-
----------------------------------
--- ALARMS
----------------------------------
 --[[
- ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
- ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
-{ 
-  1 = notified, 
-  2 = alarm start, 
-  3 = armed, 
-  4 = type(0=min,1=max,2=timer,3=batt), 
+  ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
+  ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
+{
+  1 = notified,
+  2 = alarm start,
+  3 = armed,
+  4 = type(0=min,1=max,2=timer,3=batt),
   5 = grace duration
   6 = ready
   7 = last alarm
-}  
---]]--
---
---
-
---
-
-----------------------
--- COMMON LAYOUT
-----------------------
--- enable vertical bars HUD drawing (same as taranis)
---#define HUD_ALGO1
--- enable optimized hor bars HUD drawing
---#define HUD_ALGO2
--- enable hor bars HUD drawing
-
-
-
-
-
-
---------------------------------------------------------------------------------
--- MENU VALUE,COMBO
---------------------------------------------------------------------------------
-
---------------------------
--- UNIT OF MEASURE
---------------------------
+}
+--]]
 local unitScale = getGeneralSettings().imperial == 0 and 1 or 3.28084
 local unitLabel = getGeneralSettings().imperial == 0 and "m" or "ft"
 local unitLongScale = getGeneralSettings().imperial == 0 and 1/1000 or 1/1609.34
 local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
-
-
------------------------
--- BATTERY 
------------------------
--- offsets are: 1 celm, 4 batt, 7 curr, 10 mah, 13 cap, indexing starts at 1
--- 
-
------------------------
--- LIBRARY LOADING
------------------------
-
-----------------------
---- COLORS
-----------------------
-
---#define COLOR_LABEL 0x7BCF
---#define COLOR_BG 0x0169
---#define COLOR_BARSEX 0x10A3
-
-
---#define COLOR_SENSORS 0x0169
-
------------------------------------
--- STATE TRANSITION ENGINE SUPPORT
------------------------------------
-
-
---------------------------
--- CLIPPING ALGO DEFINES
---------------------------
-
-
-
-
-
-
-
 
 --[[
   for info see https://github.com/heldersepu/GMapCatcher
@@ -193,6 +45,7 @@ local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
   - tiles need to be resized down to 100x100 from original size of 256x256
   - at max zoom level (-2) 1 tile = 100px = 76.5m
 ]]
+
 --------------------------
 -- MINI HUD
 --------------------------
@@ -292,7 +145,8 @@ end
 
 --[[
   total tiles on the web mercator projection = 2^zoom*2^zoom
---]]local function get_tile_matrix_size_pixel(level)
+--]]
+local function get_tile_matrix_size_pixel(level)
     local size = 2^level * 100
     return size, size
 end
@@ -320,7 +174,8 @@ end
   y_offset = y_coord%256
   
   Su filesystem il percorso è /tile_y/tile_x.png
---]]local function google_coord_to_tiles(conf, lat, lng, level)
+--]]
+local function google_coord_to_tiles(conf, lat, lng, level)
   lat = clip(lat, MinLatitude, MaxLatitude)
   lng = clip(lng, MinLongitude, MaxLongitude)
 
@@ -443,7 +298,7 @@ local function drawTiles(conf,drawLib,utils,width,xmin,xmax,ymin,ymax,color,leve
   -- map overlay
   lcd.drawBitmap(utils.getBitmap("maps_box_380x20"),5,ymin+2*100-20) --160x90  
   -- draw 50m or 150ft line at max zoom
-  lcd.setColor(CUSTOM_COLOR,0xFFFF)
+  lcd.setColor(CUSTOM_COLOR,utils.colors.white)
   lcd.drawLine(xmin+5,ymin+2*100-7,xmin+5+scaleLen,ymin+2*100-7,SOLID,CUSTOM_COLOR)
   lcd.drawText(xmin+5,ymin+2*100-21,scaleLabel,SMLSIZE+CUSTOM_COLOR)
 end
@@ -538,7 +393,7 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
     end
     
     -- draw map tiles
-    lcd.setColor(CUSTOM_COLOR,0xFE60)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.yellow)
     drawTiles(conf,drawLib,utils,4,minX,maxX,minY,maxY,CUSTOM_COLOR,level)
     
     -- draw home
@@ -558,16 +413,17 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         lcd.drawRectangle(estimatedHomeScreenX-11,estimatedHomeScreenY-11,20,20,CUSTOM_COLOR)
       end
     end
-    --]]    
+    --]]
+    
     -- draw vehicle
     if myScreenX ~= nil then
-      lcd.setColor(CUSTOM_COLOR,0xFFFF)
+      lcd.setColor(CUSTOM_COLOR,utils.colors.white)
       drawLib.drawRArrow(myScreenX,myScreenY,17-5,telemetry.yaw,CUSTOM_COLOR)
-      lcd.setColor(CUSTOM_COLOR,0x0000)
+      lcd.setColor(CUSTOM_COLOR,utils.colors.black)
       drawLib.drawRArrow(myScreenX,myScreenY,17,telemetry.yaw,CUSTOM_COLOR)
     end
     -- draw gps trace
-    lcd.setColor(CUSTOM_COLOR,0xFE60)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.yellow)
     for p=0, math.min(sampleCount-1,conf.mapTrailDots-1)
     do
       if p ~= (sampleCount-1)%conf.mapTrailDots then
@@ -584,12 +440,12 @@ local function drawMap(myWidget,drawLib,conf,telemetry,status,utils,level)
         end
       end
     end
-    -- DEBUG
-    lcd.setColor(CUSTOM_COLOR,0xFFFF)
+    lcd.drawBitmap(utils.getBitmap("maps_box_60x16"),3,24)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.white)
     lcd.drawText(0+5,18+5,string.format("zoom:%d",level),SMLSIZE+CUSTOM_COLOR)
-    lcd.setColor(CUSTOM_COLOR,0xFFFF)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.white)
   end
-  lcd.setColor(CUSTOM_COLOR,0xFFFF)
+  lcd.setColor(CUSTOM_COLOR,utils.colors.white)
 end
 
 local function drawCustomSensors(x,customSensors,utils,status)
@@ -598,7 +454,8 @@ local function drawCustomSensors(x,customSensors,utils,status)
     lcd.setColor(CUSTOM_COLOR,COLOR_SENSORS)
     lcd.drawFilledRectangle(0,194,LCD_W,35,CUSTOM_COLOR)
     --]]
-    lcd.setColor(CUSTOM_COLOR,0x0000)
+
+    lcd.setColor(CUSTOM_COLOR,utils.colors.black)
     lcd.drawRectangle(400,18,80,201,CUSTOM_COLOR)
     for l=1,3
     do
@@ -617,12 +474,12 @@ local function drawCustomSensors(x,customSensors,utils,status)
           label = string.format("%s(%s)",sensorConfig[1],sensorConfig[4])
         end
         -- draw sensor label
-        lcd.setColor(CUSTOM_COLOR,0x8C71)
+        lcd.setColor(CUSTOM_COLOR,utils.colors.lightgrey)
         lcd.drawText(x+customSensorXY[i][1], customSensorXY[i][2],label, SMLSIZE+RIGHT+CUSTOM_COLOR)
         
         local timerId = string.match(string.lower(sensorConfig[2]), "timer(%d+)")
         if timerId ~= nil then
-          lcd.setColor(CUSTOM_COLOR,0xFFFF)
+          lcd.setColor(CUSTOM_COLOR,utils.colors.white)
           -- lua timers are zero based
           if tonumber(timerId) > 0 then
             timerId = tonumber(timerId) -1
@@ -647,11 +504,11 @@ local function drawCustomSensors(x,customSensors,utils,status)
             flags = 0
           end
           
-          local color = 0xFFFF
+          local color = utils.colors.white
           local sign = sensorConfig[6] == "+" and 1 or -1
           -- max tracking, high values are critical
           if math.abs(value) ~= 0 and status.showMinMaxValues == false then
-            color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and 0xFE60 or 0xFFFF))
+            color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and utils.colors.yellow or utils.colors.white))
           end
           
           lcd.setColor(CUSTOM_COLOR,color)
@@ -702,7 +559,8 @@ local function init(conf,utils,level)
     tile_dim = (40075017/world_tiles) * unitScale -- m or ft
     scaleLen = ((unitScale==1 and 1 or 3)*50*(level+3)/tile_dim)*TILES_SIZE
     scaleLabel = tostring((unitScale==1 and 1 or 3)*50*(level+3))..unitLabel
---]]    lastZoomLevel = level
+--]]
+    lastZoomLevel = level
   end
 end
 
@@ -713,12 +571,13 @@ local function draw(myWidget,drawLib,conf,telemetry,status,battery,alarms,frame,
   --[[ 
   -- No HUD support for now
   drawHud(myWidget,drawLib,conf,telemetry,status,battery,utils)
-  --]]  utils.drawTopBar()
+  --]]
+  utils.drawTopBar()
   -- bottom bar
-  lcd.setColor(CUSTOM_COLOR,0x0000)
+  lcd.setColor(CUSTOM_COLOR,utils.colors.black)
   lcd.drawFilledRectangle(0,200+18,480,LCD_H-(200+18),CUSTOM_COLOR)
   -- gps status, draw coordinatyes if good at least once
-  lcd.setColor(CUSTOM_COLOR,0xFFFF)
+  lcd.setColor(CUSTOM_COLOR,utils.colors.white)
   if telemetry.lon ~= nil and telemetry.lat ~= nil then
     lcd.drawText(280,200+18-21,utils.decToDMSFull(telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)
     lcd.drawText(380,200+18-21,utils.decToDMSFull(telemetry.lon,telemetry.lat),SMLSIZE+CUSTOM_COLOR+RIGHT)

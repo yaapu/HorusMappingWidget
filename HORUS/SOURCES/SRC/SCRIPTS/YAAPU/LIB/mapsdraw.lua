@@ -1,7 +1,7 @@
 --
 -- An FRSKY S.Port <passthrough protocol> based Telemetry script for the Horus X10 and X12 radios
 --
--- Copyright (C) 2018-2019. Alessandro Apostoli
+-- Copyright (C) 2018-2021. Alessandro Apostoli
 -- https://github.com/yaapu
 --
 -- This program is free software; you can redistribute it and/or modify
@@ -18,173 +18,25 @@
 -- along with this program; if not, see <http://www.gnu.org/licenses>.
 --
 
----------------------
--- MAIN CONFIG
--- 480x272 LCD_W x LCD_H
----------------------
-
----------------------
--- VERSION
----------------------
--- load and compile of lua files
---#define LOADSCRIPT
--- uncomment to force compile of all chunks, comment for release
---#define COMPILE
--- fix for issue OpenTX 2.2.1 on X10/X10S - https://github.com/opentx/opentx/issues/5764
-
----------------------
--- FEATURE CONFIG
----------------------
--- enable splash screen for no telemetry data
---#define SPLASH
--- enable battery percentage based on voltage
---#define BATTPERC_BY_VOLTAGE
--- enable code to draw a compass rose vs a compass ribbon
---#define COMPASS_ROSE
--- enable support for FNV hash based sound files
-
----------------------
--- DEV FEATURE CONFIG
----------------------
--- enable memory debuging 
---#define MEMDEBUG
--- enable dev code
---#define DEV
--- uncomment haversine calculation routine
---#define HAVERSINE
--- enable telemetry logging to file (experimental)
---#define LOGTELEMETRY
--- use radio channels imputs to generate fake telemetry data
---#define TESTMODE
--- enable debug of generated hash or short hash string
---#define HASHDEBUG
-
----------------------
--- DEBUG REFRESH RATES
----------------------
--- calc and show hud refresh rate
---#define HUDRATE
--- calc and show telemetry process rate
---#define BGTELERATE
-
----------------------
--- SENSOR IDS
----------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Throttle and RC use RPM sensor IDs
-
----------------------
--- BATTERY DEFAULTS
----------------------
----------------------------------
--- BACKLIGHT SUPPORT
--- GV is zero based, GV 8 = GV 9 in OpenTX
----------------------------------
----------------------------------
--- CONF REFRESH GV
----------------------------------
-
----------------------------------
--- ALARMS
----------------------------------
 --[[
- ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
- ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
-{ 
-  1 = notified, 
-  2 = alarm start, 
-  3 = armed, 
-  4 = type(0=min,1=max,2=timer,3=batt), 
+  ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
+  ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
+{
+  1 = notified,
+  2 = alarm start,
+  3 = armed,
+  4 = type(0=min,1=max,2=timer,3=batt),
   5 = grace duration
   6 = ready
   7 = last alarm
-}  
---]]--
---
---
-
---
-
-----------------------
--- COMMON LAYOUT
-----------------------
--- enable vertical bars HUD drawing (same as taranis)
---#define HUD_ALGO1
--- enable optimized hor bars HUD drawing
---#define HUD_ALGO2
--- enable hor bars HUD drawing
-
-
-
-
-
-
---------------------------------------------------------------------------------
--- MENU VALUE,COMBO
---------------------------------------------------------------------------------
-
---------------------------
--- UNIT OF MEASURE
---------------------------
+}
+--]]
 local unitScale = getGeneralSettings().imperial == 0 and 1 or 3.28084
 local unitLabel = getGeneralSettings().imperial == 0 and "m" or "ft"
 local unitLongScale = getGeneralSettings().imperial == 0 and 1/1000 or 1/1609.34
 local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
-
-
------------------------
--- BATTERY 
------------------------
--- offsets are: 1 celm, 4 batt, 7 curr, 10 mah, 13 cap, indexing starts at 1
--- 
-
------------------------
--- LIBRARY LOADING
------------------------
-
-----------------------
---- COLORS
-----------------------
-
---#define COLOR_LABEL 0x7BCF
---#define COLOR_BG 0x0169
---#define COLOR_BARSEX 0x10A3
-
-
---#define COLOR_SENSORS 0x0169
-
------------------------------------
--- STATE TRANSITION ENGINE SUPPORT
------------------------------------
-
-
---------------------------
--- CLIPPING ALGO DEFINES
---------------------------
-
-
-
-
-
-
-
 
 
 -- model and opentx version
@@ -313,13 +165,13 @@ end
 local function drawNoTelemetryData(status,telemetry,utils,telemetryEnabled)
   -- no telemetry data
   if (not telemetryEnabled()) then
-    lcd.setColor(CUSTOM_COLOR,0xFFFF)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.white)
     lcd.drawFilledRectangle(88,74, 304, 84, CUSTOM_COLOR)
-    lcd.setColor(CUSTOM_COLOR,0xF800)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.red)
     lcd.drawFilledRectangle(90,76, 300, 80, CUSTOM_COLOR)
-    lcd.setColor(CUSTOM_COLOR,0xFFFF)
+    lcd.setColor(CUSTOM_COLOR,utils.colors.white)
     lcd.drawText(110, 85, "no telemetry data", DBLSIZE+CUSTOM_COLOR)
-    lcd.drawText(130, 120, "Yaapu Mapping Widget 1.2.2-dev", SMLSIZE+CUSTOM_COLOR)
+    lcd.drawText(130, 120, "Yaapu Mapping Widget 1.3.0", SMLSIZE+CUSTOM_COLOR)
   end
 end
 

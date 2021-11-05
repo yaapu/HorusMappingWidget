@@ -1,7 +1,7 @@
 --
 -- An FRSKY S.Port <passthrough protocol> based Telemetry script for the Horus X10 and X12 radios
 --
--- Copyright (C) 2018-2019. Alessandro Apostoli
+-- Copyright (C) 2018-2021. Alessandro Apostoli
 -- https://github.com/yaapu
 --
 -- This program is free software; you can redistribute it and/or modify
@@ -18,173 +18,25 @@
 -- along with this program; if not, see <http://www.gnu.org/licenses>.
 --
 
----------------------
--- MAIN CONFIG
--- 480x272 LCD_W x LCD_H
----------------------
-
----------------------
--- VERSION
----------------------
--- load and compile of lua files
---#define LOADSCRIPT
--- uncomment to force compile of all chunks, comment for release
---#define COMPILE
--- fix for issue OpenTX 2.2.1 on X10/X10S - https://github.com/opentx/opentx/issues/5764
-
----------------------
--- FEATURE CONFIG
----------------------
--- enable splash screen for no telemetry data
---#define SPLASH
--- enable battery percentage based on voltage
---#define BATTPERC_BY_VOLTAGE
--- enable code to draw a compass rose vs a compass ribbon
---#define COMPASS_ROSE
--- enable support for FNV hash based sound files
-
----------------------
--- DEV FEATURE CONFIG
----------------------
--- enable memory debuging 
---#define MEMDEBUG
--- enable dev code
---#define DEV
--- uncomment haversine calculation routine
---#define HAVERSINE
--- enable telemetry logging to file (experimental)
---#define LOGTELEMETRY
--- use radio channels imputs to generate fake telemetry data
---#define TESTMODE
--- enable debug of generated hash or short hash string
---#define HASHDEBUG
-
----------------------
--- DEBUG REFRESH RATES
----------------------
--- calc and show hud refresh rate
---#define HUDRATE
--- calc and show telemetry process rate
---#define BGTELERATE
-
----------------------
--- SENSOR IDS
----------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Throttle and RC use RPM sensor IDs
-
----------------------
--- BATTERY DEFAULTS
----------------------
----------------------------------
--- BACKLIGHT SUPPORT
--- GV is zero based, GV 8 = GV 9 in OpenTX
----------------------------------
----------------------------------
--- CONF REFRESH GV
----------------------------------
-
----------------------------------
--- ALARMS
----------------------------------
 --[[
- ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
- ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
- ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
-{ 
-  1 = notified, 
-  2 = alarm start, 
-  3 = armed, 
-  4 = type(0=min,1=max,2=timer,3=batt), 
+  ALARM_TYPE_MIN needs arming (min has to be reached first), value below level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_MAX no arming, value above level for grace, once armed is periodic, reset on landing
+  ALARM_TYPE_TIMER no arming, fired periodically, spoken time, reset on landing
+  ALARM_TYPE_BATT needs arming (min has to be reached first), value below level for grace, no reset on landing
+{
+  1 = notified,
+  2 = alarm start,
+  3 = armed,
+  4 = type(0=min,1=max,2=timer,3=batt),
   5 = grace duration
   6 = ready
   7 = last alarm
-}  
---]]--
---
---
-
---
-
-----------------------
--- COMMON LAYOUT
-----------------------
--- enable vertical bars HUD drawing (same as taranis)
---#define HUD_ALGO1
--- enable optimized hor bars HUD drawing
---#define HUD_ALGO2
--- enable hor bars HUD drawing
-
-
-
-
-
-
---------------------------------------------------------------------------------
--- MENU VALUE,COMBO
---------------------------------------------------------------------------------
-
---------------------------
--- UNIT OF MEASURE
---------------------------
+}
+--]]
 local unitScale = getGeneralSettings().imperial == 0 and 1 or 3.28084
 local unitLabel = getGeneralSettings().imperial == 0 and "m" or "ft"
 local unitLongScale = getGeneralSettings().imperial == 0 and 1/1000 or 1/1609.34
 local unitLongLabel = getGeneralSettings().imperial == 0 and "km" or "mi"
-
-
------------------------
--- BATTERY 
------------------------
--- offsets are: 1 celm, 4 batt, 7 curr, 10 mah, 13 cap, indexing starts at 1
--- 
-
------------------------
--- LIBRARY LOADING
------------------------
-
-----------------------
---- COLORS
-----------------------
-
---#define COLOR_LABEL 0x7BCF
---#define COLOR_BG 0x0169
---#define COLOR_BARSEX 0x10A3
-
-
---#define COLOR_SENSORS 0x0169
-
------------------------------------
--- STATE TRANSITION ENGINE SUPPORT
------------------------------------
-
-
---------------------------
--- CLIPPING ALGO DEFINES
---------------------------
-
-
-
-
-
-
-
 
 
 --[[
@@ -197,7 +49,8 @@ TYPECOMBO - menu option to select a value from a list
 {description, type, name, default, label list, value list, <master name>, <master value>}
 example {"center pane layout:", TYPECOMBO, "CPANE", 1, { "hud","radar" }, { 1, 2 },"CPANE",1 },
 
---]]--
+--]]
+--
 local menuItems = {
   {"heading sensor:", 1, "HDGT", 1, { "Hdg", "Yaw" }, { "Hdg", "Yaw" } },
   {"heading sensor unit:", 1, "HDGU", 1, { "deg", "rad" }, { 1, 57.29578 } }, -- radians to degrees rad * (180/pi)
@@ -207,9 +60,10 @@ local menuItems = {
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
   {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
   {"emulated wheel channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
-  {"map default zoom level:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
-  {"map min zoom level:", 0, "MAPmZ", -2, -2, 17,nil,0,1 },
-  {"map max zoom level:", 0, "MAPMZ", 17, -2, 17,nil,0,1 },
+  {"emulated wheel delay in seconds:", 0, "ZDMS", 1, 0, 50,"sec",PREC1, 1 },
+  {"map zoom level default value:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
+  {"map zoom level min value:", 0, "MAPmZ", -2, -2, 17,nil,0,1 },
+  {"map zoom level max value:", 0, "MAPMZ", 17, -2, 17,nil,0,1 },
 }
 
 local menu  = {
@@ -246,15 +100,15 @@ end
 local function updateMenuItems()
   if menu.updated == true then
     -- no dynamic menus yet
-    
+
     value, name, idx = getMenuItemByName(menuItems,"MAPP")
-    
+
     if value == nil then
       return
     end
-    
+
     local value2, name2, idx2 = getMenuItemByName(menuItems,"MAPT")
-    
+
     if value2 ~= nil then
       if value == 1 then --GMapCatcher
         menuItems[idx2][5] = { "satellite", "map", "terrain" }
@@ -263,46 +117,46 @@ local function updateMenuItems()
         menuItems[idx2][5] = { "GoogleSatelliteMap", "GoogleHybridMap", "GoogleMap", "GoogleTerrainMap" }
         menuItems[idx2][6] = { "GoogleSatelliteMap", "GoogleHybridMap", "GoogleMap", "GoogleTerrainMap" }
       end
-      
+
       if menuItems[idx2][4] > #menuItems[idx2][5] then
         menuItems[idx2][4] = 1
       end
     end
-    
+
     value2, name2, idx2 = getMenuItemByName(menuItems,"MAPmZ")
-    
+
     if value2 ~= nil then
       if value == 1 then        -- GMapCatcher
         menuItems[idx2][5] = -2
         menuItems[idx2][6] = 17
-      
+
         menuItems[idx2][4] = math.max(-2,menuItems[idx2][4])
       else                      -- Google
         menuItems[idx2][5] = 1
         menuItems[idx2][6] = 20
-        
+
         menuItems[idx2][4] = math.max(1,menuItems[idx2][4])
       end
     end
-    
+
     value2, name2, idx2 = getMenuItemByName(menuItems,"MAPMZ")
-    
+
     if value2 ~= nil then
       if value == 1 then        -- GMapCatcher
         menuItems[idx2][5] = -2
         menuItems[idx2][6] = 17
-        
+
         menuItems[idx2][4] = math.min(17,menuItems[idx2][4])
       else                      -- Google
         menuItems[idx2][5] = 1
         menuItems[idx2][6] = 20
-        
+
         menuItems[idx2][4] = math.min(20,menuItems[idx2][4])
       end
     end
-    
+
     value2, name2, idx2 = getMenuItemByName(menuItems,"MAPZ")
-    
+
     if value2 ~= nil then
       if value == 1 then        -- GMapCatcher
         menuItems[idx2][5] = -2
@@ -324,7 +178,7 @@ local function updateMenuItems()
         end
       end
     end
-    
+
     menu.updated = false
     collectgarbage()
     collectgarbage()
@@ -342,23 +196,25 @@ local function applyConfigValues(conf)
     updateMenuItems()
     menu.updated = false
   end
-  
+
   conf.mapType = getMenuItemByName(menuItems,"MAPT")
   conf.mapTrailDots = getMenuItemByName(menuItems,"MAPTD")
-  
+
   conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
   conf.mapZoomMin = getMenuItemByName(menuItems,"MAPmZ")
   conf.mapZoomMax = getMenuItemByName(menuItems,"MAPMZ")
-  
+
   local chInfo = getFieldInfo("ch"..getMenuItemByName(menuItems,"ZTC"))
   conf.mapWheelChannelId = (chInfo == nil and -1 or chInfo['id'])
-  
+
+  conf.mapWheelChannelDelay = getMenuItemByName(menuItems,"ZDMS")
+
   conf.enableMapGrid = getMenuItemByName(menuItems,"MAPG")
   conf.mapProvider = getMenuItemByName(menuItems,"MAPP")
-  
+
   conf.headingSensor = getMenuItemByName(menuItems,"HDGT")
   conf.headingSensorUnitScale = getMenuItemByName(menuItems,"HDGU")
-  
+
   conf.sensorsConfigFileType = getMenuItemByName(menuItems,"SEN")
   menu.editSelected = false
   collectgarbage()
@@ -419,14 +275,14 @@ local function saveConfig(conf)
 end
 
 local function drawConfigMenuBars()
-  lcd.setColor(CUSTOM_COLOR,0x0000)
+  lcd.setColor(CUSTOM_COLOR,lcd.RGB(16,20,25))
   local itemIdx = string.format("%d/%d",menu.selectedItem,#menuItems)
   lcd.drawFilledRectangle(0,0, LCD_W, 20, CUSTOM_COLOR)
   lcd.drawRectangle(0, 0, LCD_W, 20, CUSTOM_COLOR)
   lcd.drawFilledRectangle(0,LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
-  lcd.setColor(CUSTOM_COLOR,0xFFFF)  
-  lcd.drawText(2,0,"Yaapu Mapping Widget 1.2.2-dev",CUSTOM_COLOR)
+  lcd.setColor(CUSTOM_COLOR,WHITE)
+  lcd.drawText(2,0,"Yaapu Mapping Widget 1.3.0".." ("..'c10f23e'..")",CUSTOM_COLOR)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end
@@ -460,7 +316,7 @@ local function decMenuItem(idx)
 end
 
 local function drawItem(idx,flags)
-  lcd.setColor(CUSTOM_COLOR,0xFFFF)    
+  lcd.setColor(CUSTOM_COLOR,WHITE)
   if menuItems[idx][2] == 0 then
     if menuItems[idx][4] == 0 and menuItems[idx][5] >= 0 then
       lcd.drawText(300,25 + (idx-menu.offset-1)*20, "---",flags+CUSTOM_COLOR)
@@ -502,7 +358,7 @@ local function drawConfigMenu(event)
   end
   --wrap
   if menu.selectedItem > #menuItems then
-    menu.selectedItem = 1 
+    menu.selectedItem = 1
     menu.offset = 0
   elseif menu.selectedItem  < 1 then
     menu.selectedItem = #menuItems
@@ -510,7 +366,7 @@ local function drawConfigMenu(event)
   end
   --
   for m=1+menu.offset,math.min(#menuItems,11+menu.offset) do
-    lcd.setColor(CUSTOM_COLOR,0xFFFF)   
+    lcd.setColor(CUSTOM_COLOR,WHITE)
     lcd.drawText(2,25 + (m-menu.offset-1)*20, menuItems[m][1],CUSTOM_COLOR)
     if m == menu.selectedItem then
       if menu.editSelected then
@@ -529,11 +385,11 @@ end
 -- RUN
 --------------------------
 local function run(event)
-  lcd.setColor(CUSTOM_COLOR, 0x0AB1) -- hex 0x084c7b -- 073f66
+  lcd.setColor(CUSTOM_COLOR, lcd.RGB(8,84,136)) -- hex 0x084c7b -- 073f66
   lcd.clear(CUSTOM_COLOR)
   ---------------------
   -- CONFIG MENU
-  ---------------------  
+  ---------------------
   drawConfigMenu(event)
   return 0
 end
