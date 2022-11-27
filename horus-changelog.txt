@@ -26,3 +26,10 @@ Horus version 1.3.0
 
 - added support for EdgeTX 2.5.x
 
+Horus version 2.0.0 beta1
+
+- added calculated hdg, speed, travel
+- added home detection and reset
+- supports edgetx/opentx
+- fixed a trailing dots bug
+- right and bottom user sensors panels can be enbled/disabled 
