@@ -134,11 +134,11 @@ local function updateMenuItems()
       if value == 1 then        -- GMapCatcher
         menuItems[idx2][5] = -2
         menuItems[idx2][6] = 17
-        menuItems[idx2][4] = -2
+        menuItems[idx2][4] = math.max(value2,-2)
       else                      -- Google
         menuItems[idx2][5] = 1
         menuItems[idx2][6] = 20
-        menuItems[idx2][4] = 1
+        menuItems[idx2][4] = math.max(value2,1)
       end
     end
 
@@ -148,24 +148,19 @@ local function updateMenuItems()
       if value == 1 then        -- GMapCatcher
         menuItems[idx2][5] = -2
         menuItems[idx2][6] = 17
-        menuItems[idx2][4] = 17
+        menuItems[idx2][4] = math.min(value2,17)
       else                      -- Google
         menuItems[idx2][5] = 1
         menuItems[idx2][6] = 20
-        menuItems[idx2][4] = 20
+        menuItems[idx2][4] = math.min(value2,20)
       end
     end
 
     value2, name2, idx2 = getMenuItemByName(menuItems,"MAPZ")
 
     if value2 ~= nil then
-      if value == 1 then        -- GMapCatcher
-        menuItems[idx2][5] = -2
-        menuItems[idx2][6] = 17
-      else                      -- Google
-        menuItems[idx2][5] = 1
-        menuItems[idx2][6] = 20
-      end
+      menuItems[idx2][5] = menuItems[idxzmin][4]
+      menuItems[idx2][6] = menuItems[idxzmax][4]
       menuItems[idx2][4] = math.min(math.max(value2,menuItems[idxzmin][4]),menuItems[idxzmax][4])
     end
 
@@ -297,7 +292,7 @@ local function drawConfigMenuBars()
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,WHITE)
   lcd.drawText(0,0, model.getInfo().name, CUSTOM_COLOR)
-  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 beta1".." ("..'375def1'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
+  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 beta1".." ("..'ff8b944'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end
@@ -400,7 +395,7 @@ end
 -- RUN
 --------------------------
 local function run(event)
-  lcd.setColor(CUSTOM_COLOR, lcd.RGB(8,84,136)) -- hex 0x084c7b -- 073f66
+  lcd.setColor(CUSTOM_COLOR, lcd.RGB(50, 50, 50))
   lcd.clear(CUSTOM_COLOR)
   ---------------------
   -- CONFIG MENU
