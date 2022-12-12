@@ -2,12 +2,11 @@ If you like this project support it!
 
 [![donate](https://user-images.githubusercontent.com/30294218/61724877-16fa7a80-ad6f-11e9-80de-9771e0b820ae.png)](https://paypal.me/yaapu)
 
+# please read the [wiki](https://github.com/yaapu/HorusMappingWidget/wiki)
 
 # Yaapu Horus Mapping Widget for iNAV/Betaflight
 
 **Check the [releases](https://github.com/yaapu/HorusMappingWidget/releases) section for latest versions**
-
-## please read the [wiki]()
 
 Offline GPS Mapping Widget for Horus and T16 radios.
 
