@@ -84,12 +84,6 @@ local status = {
     value = 0,
   },
 }
-
------------------------------------------------------------------
--- INAV like telemetry support
------------------------------------------------------------------
-local gpsHome = false
-
 ---------------------------
 -- LIBRARY LOADING
 ---------------------------
@@ -97,10 +91,12 @@ local basePath = "/WIDGETS/YaapuMaps/"
 local libBasePath = basePath.."lib/"
 
 -- loadable modules
-local drawLibFile = "mapsdraw"
+local drawLibFile = "drawlib"
+local mapLibFile = "maplib"
 local menuLibFile = "menu"
 
 local drawLib = {}
+local mapLib = {}
 local utils = {}
 utils.colors = {}
 utils.degSymbol = "\64"
@@ -108,7 +104,7 @@ utils.degSymbol = "\64"
 -------------------------------
 -- MAP SCREEN LAYOUT
 -------------------------------
-local mapLayout = nil
+local layout = nil
 
 local customSensors = nil
 
@@ -149,6 +145,7 @@ local conf = {
 }
 
 local loadCycle = 0
+local gpsLockTimer = nil
 
 utils.doLibrary = function(filename)
   local f = assert(loadScript(libBasePath..filename..".lua","c"))
@@ -231,8 +228,8 @@ local function loadConfig()
   menuLib.loadConfig(conf)
   -- unload libraries
   utils.clearTable(menuLib)
-  utils.clearTable(mapLayout)
-  mapLayout = nil
+  utils.clearTable(layout)
+  layout = nil
   utils.clearTable(customSensors)
     -- load custom sensors
   utils.loadCustomSensors()
@@ -436,7 +433,7 @@ end
 
 
 local function telemetryEnabled(widget)
---[[  
+--[[
   local rssi = widget.options["RSSI Source"] == nil and 0 or getValue(widget.options["RSSI Source"])
   if rssi == 0 then
     return false
@@ -474,7 +471,7 @@ function utils.drawTopBar(widget)
   if telemetryEnabled(widget) == false then
     lcd.setColor(CUSTOM_COLOR,utils.colors.red)
     lcd.drawText(285-23, 0, "RS:---", 0+CUSTOM_COLOR)
-    utils.drawBlinkBitmap("warn",0,0)    
+    utils.drawBlinkBitmap("warn",0,0)
   else
     lcd.drawText(285, 0, "RS:", 0+CUSTOM_COLOR)
     --local strRSSI = widget.options["RSSI Source"] == nil and "---" or tonumber(getValue(widget.options["RSSI Source"]))
@@ -488,6 +485,9 @@ function utils.drawTopBar(widget)
 end
 
 local function reset()
+  -- CONFIG
+  loadConfig()
+
   utils.clearTable(customSensors)
   customSensors = nil
   -- TELEMETRY
@@ -507,18 +507,36 @@ local function reset()
   telemetry.lon = nil
   telemetry.homeLat = nil
   telemetry.homeLon = nil
+  telemetry.groundSpeed = 0
+  telemetry.cog = 0
 
   collectgarbage()
   collectgarbage()
   -- STATUS
   utils.clearTable(status)
+  status = {
+    -- MAP
+    mapZoomLevel = conf.mapZoomLevel,
+    lastLat = nil,
+    lastLon = nil,
+    homeSet = false,
+    avgSpeed = {
+      lastSampleTime = nil,
+      avgTravelDist = 0,
+      avgTravelTime = 0,
+      travelDist = 0,
+      prevLat = nil,
+      prevLon = nil,
+      value = 0,
+    },
+  }
   collectgarbage()
   collectgarbage()
-  -- CONFIG
-  loadConfig()
-  status.mapZoomLevel = nil
   -- SENSORS
   utils.loadCustomSensors()
+  gpsLockTimer = nil
+  collectgarbage()
+  collectgarbage()
 end
 
 local function getConfigTriggerFilename()
@@ -579,7 +597,6 @@ local function resetHome()
 end
 
 
-local gpsLockTimer = nil
 local function task2Hz(widget, now)
   -- frametype and model name
   local info = model.getInfo()
@@ -591,11 +608,12 @@ local function task2Hz(widget, now)
     -- trigger reset
     reset()
   end
+
   setTelemetryValue(0x084F, 0, 0, math.floor(telemetry.yaw), 20 , 0 , "Hdg")
   setTelemetryValue(0x083F, 0, 0, telemetry.groundSpeed, 5 , 0 , "GSpd")
 
   -- wait 10 seconds before auto setting home
-  if telemetry.homeLat == nil and telemetry.homeLon == nil and telemetry.lat ~= nil and telemetry.lon ~= nil and telemetry.groundSpeed < 0.5 then
+  if telemetry.homeLat == nil and telemetry.homeLon == nil and telemetry.lat ~= nil and telemetry.lon ~= nil and telemetry.groundSpeed < 1 then
     if gpsLockTimer == nil then
       gpsLockTimer = getTime()
     end
@@ -603,6 +621,8 @@ local function task2Hz(widget, now)
       resetHome()
     end
   end
+
+
 end
 
 local function taskAvgSpeed2Hz(widget, now)
@@ -716,6 +736,7 @@ local function init()
   status.mapZoomLevel = conf.mapZoomLevel
   -- load draw library
   drawLib = utils.doLibrary(drawLibFile)
+  mapLib = utils.doLibrary(mapLibFile)
 
   currentModel = model.getInfo().name
   -- load custom sensors
@@ -889,12 +910,12 @@ local function drawFullScreen(widget)
   lcd.setColor(CUSTOM_COLOR, utils.colors.darkgrey)
   lcd.clear(CUSTOM_COLOR)
 
-  if mapLayout ~= nil then
-    mapLayout.draw(widget,drawLib,conf,telemetry,status,battery,alarms,frame,utils,customSensors,gpsStatuses,leftPanel,centerPanel,rightPanel)
+  if layout ~= nil then
+    layout.draw(widget,mapLib,drawLib,conf,telemetry,status,battery,alarms,frame,utils,customSensors,gpsStatuses,leftPanel,centerPanel,rightPanel)
   else
   -- Layout start
     if loadCycle == 3 then
-      mapLayout = utils.doLibrary("mapslayout")
+      layout = utils.doLibrary("layout")
     end
   end
 

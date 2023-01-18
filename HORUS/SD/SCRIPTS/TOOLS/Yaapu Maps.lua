@@ -292,7 +292,7 @@ local function drawConfigMenuBars()
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,WHITE)
   lcd.drawText(0,0, model.getInfo().name, CUSTOM_COLOR)
-  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 beta1".." ("..'ff8b944'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
+  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 dev".."( "..'6291d55'..")".." ("..'6291d55'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end
