@@ -10,7 +10,7 @@ If you like this project support it!
 
 Offline GPS Mapping Widget for Horus and T16 radios.
 
-It supports Ardupilot, iNAV, Betaflight, Crossfire and whatever FC or firmware that can send GPS info to OpenTX
+It supports Ardupilot, iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry Device (like a Frsky or iBus GPS) that can send GPS info to OpenTX
 
 ![image](https://user-images.githubusercontent.com/30294218/204130618-06812eeb-98ab-49e3-8f6d-bc0357c7aebf.png)
 
