@@ -8,6 +8,8 @@ If you like this project support it!
 
 **Check the [releases](https://github.com/yaapu/HorusMappingWidget/releases) section for latest versions**
 
+Supports OpenTX 2.3 and EdgeTX 2.7 or later
+
 Offline GPS Mapping Widget for Horus and T16 radios.
 
 It supports Ardupilot, iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry Device (like a Frsky or iBus GPS) that can send GPS info to OpenTX
