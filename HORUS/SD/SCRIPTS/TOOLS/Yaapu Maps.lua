@@ -61,7 +61,7 @@ local menuItems = {
   {"telemetry sensor config file:", 1, "SEN", 1, { "per model", "global profile 1", "global profile 2", "global profile 3" }, { 0, 1, 2, 3 } },
   {"air/groundspeed unit:", 1, "HSPD", 1, { "m/s", "km/h", "mph", "kn" }, { 1, 3.6, 2.23694, 1.94384} },
   {"map provider:", 1, "MAPP", 1, { "GMapCatcher", "Google" }, { 1, 2 } },
-  {"map type:", 1, "MAPT", 1, { "satellite", "map", "terrain" }, { "sat_tiles", "tiles", "ter_tiles" } },
+  {"map type:", 1, "MAPT", 1, { "", "", "", "" }, { "", "", "", "" } },
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
   {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
   {"emulated wheel channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
@@ -105,7 +105,6 @@ end
 local function updateMenuItems()
   if menu.updated == true then
     -- no dynamic menus yet
-
     value, name, idx = getMenuItemByName(menuItems,"MAPP")
 
     if value == nil then
@@ -113,6 +112,7 @@ local function updateMenuItems()
     end
 
     local value2, name2, idx2 = getMenuItemByName(menuItems,"MAPT")
+
 
     if value2 ~= nil then
       if value == 1 then --GMapCatcher
@@ -214,7 +214,7 @@ local function applyConfigValues(conf)
   conf.horSpeedMultiplier, conf.horSpeedLabel = getMenuItemByName(menuItems,"HSPD")
 
   conf.gpsSource = getMenuItemByName(menuItems,"GPS")
-  
+
   menu.editSelected = false
   collectgarbage()
   collectgarbage()
@@ -234,7 +234,7 @@ local function loadConfig(conf)
           menuItems[i][4] = tonumber(value)
           -- check if the value read from file is compatible with available options
           if menuItems[i][2] == 1 and tonumber(value) > #menuItems[i][5] then
-            --if not force default
+            -- if not force default
             menuItems[i][4] = 1
           end
         end
@@ -292,7 +292,7 @@ local function drawConfigMenuBars()
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,WHITE)
   lcd.drawText(0,0, model.getInfo().name, CUSTOM_COLOR)
-  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 dev".."( "..'6291d55'..")".." ("..'6291d55'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
+  lcd.drawText(LCD_W,4,"Yaapu Mapping Widget 2.0.0 dev".."( "..'df61332'..")".." ("..'df61332'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end
