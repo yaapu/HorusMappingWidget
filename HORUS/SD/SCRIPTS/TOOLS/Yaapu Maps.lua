@@ -64,7 +64,8 @@ local menuItems = {
   {"map type:", 1, "MAPT", 1, { "", "", "", "" }, { "", "", "", "" } },
   {"map grid lines:", 1, "MAPG", 1, { "yes", "no" }, { true, false } },
   {"map trail dots:", 0, "MAPTD", 10, 5, 50,nil,0,1 },
-  {"emulated wheel channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
+  {"zoom channel type:", 1, "ZCT", 1, { "emulated wheel", "potentiometer" }, { 1, 2 } },
+  {"zoom channel:", 0, "ZTC", 0, 0, 32,nil,0,1 },
   {"emulated wheel delay in seconds:", 0, "ZDMS", 1, 0, 50,"sec",PREC1, 1 },
   {"map zoom level default value:", 0, "MAPZ", -2, -2, 17,nil,0,1 },
   {"map zoom level min value:", 0, "MAPmZ", -2, -2, 17,nil,0,1 },
@@ -192,6 +193,8 @@ local function applyConfigValues(conf)
   conf.mapZoomLevel = getMenuItemByName(menuItems,"MAPZ")
   conf.mapZoomMin = getMenuItemByName(menuItems,"MAPmZ")
   conf.mapZoomMax = getMenuItemByName(menuItems,"MAPMZ")
+
+  conf.zoomChannelType = getMenuItemByName(menuItems,"ZCT")
 
   local chInfo = getFieldInfo("ch"..getMenuItemByName(menuItems,"ZTC"))
   conf.mapWheelChannelId = (chInfo == nil and -1 or chInfo['id'])

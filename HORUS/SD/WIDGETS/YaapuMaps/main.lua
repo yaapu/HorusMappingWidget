@@ -861,6 +861,30 @@ function utils.checkHomeResetChannel(widget)
   end
 end
 
+function filterZoom(t)
+  local out = {}
+  local counter = 1
+
+  for k, v in pairs(t) do
+    if v == true then 
+      out[counter] = k
+      counter = counter + 1
+    end
+  end
+  table.sort(out)
+  return out
+end
+
+function tableCount(t)
+  local counter = 1
+  for _ in pairs(t) do counter = counter + 1 end
+  return counter
+end
+
+function math_clamp(x, min, max)
+  return math.max(math.min(x, max), min)
+end
+
 function utils.getMapZoomLevel(widget,conf,status,customSensors)
   local chValue = getValue(conf.mapWheelChannelId)
   local newZoom = status.mapZoomLevel == nil and conf.mapZoomLevel or status.mapZoomLevel
@@ -868,25 +892,43 @@ function utils.getMapZoomLevel(widget,conf,status,customSensors)
   if customSensors ~= nil then
     zoomLevels = customSensors.zoomLevels
   end
-  if conf.mapWheelChannelId > -1 then
-    -- SW up (increase zoom detail)
-    if chValue < -600 then
-      if conf.mapProvider == 1 then
-        return utils.decZoomLevel(conf,status,zoomLevels)
-      else
-        return utils.incZoomLevel(conf,status,zoomLevels)
-      end
+
+  if conf.zoomChannelType == 2 then
+    -- do magic here
+    local normChValue = chValue + 1024
+
+    if (zoomLevels == nil) then
+      -- no custom zoom levels set using the default -2 to 16 zoom levels
+      local sizePerChannel = 2048 / 19
+      return math_clamp(math.floor((normChValue / sizePerChannel))-2, -2, 16)
+    else 
+      -- no custom zoom levels set using the default -2 to 16 zoom levels
+      local filtered = filterZoom(zoomLevels)
+      local sizePerChannel = 2048 / (tableCount(filtered) - 1)
+      local tableSize = tableCount(filtered) - 1
+      return filtered[math_clamp(math.floor(normChValue / sizePerChannel) + 1, 1, tableSize)]
     end
-    -- SW down (decrease zoom detail)
-    if chValue > 600 then
-      if conf.mapProvider == 1 then
-        return utils.incZoomLevel(conf,status,zoomLevels)
-      else
-        return utils.decZoomLevel(conf,status,zoomLevels)
+  else
+    if conf.mapWheelChannelId > -1 then
+      -- SW up (increase zoom detail)
+      if chValue < -600 then
+        if conf.mapProvider == 1 then
+          return utils.decZoomLevel(conf,status,zoomLevels)
+        else
+          return utils.incZoomLevel(conf,status,zoomLevels)
+        end
       end
+      -- SW down (decrease zoom detail)
+      if chValue > 600 then
+        if conf.mapProvider == 1 then
+          return utils.incZoomLevel(conf,status,zoomLevels)
+        else
+          return utils.decZoomLevel(conf,status,zoomLevels)
+        end
+      end
+      -- switch is idle, force timer expire
+      zoomDelayStart = getTime() - conf.mapWheelChannelDelay*10
     end
-    -- switch is idle, force timer expire
-    zoomDelayStart = getTime() - conf.mapWheelChannelDelay*10
   end
   return status.mapZoomLevel
 end
