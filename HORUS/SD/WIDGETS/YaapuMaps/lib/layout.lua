@@ -104,31 +104,48 @@ local function drawCustomSensors(x,customSensors,utils,status,conf)
 
           local sensorName = sensorConfig[2]..(status.showMinMaxValues == true and sensorConfig[6] or "")
           local sensorValue = getValue(sensorName)
-          local value = (sensorValue+(mult == 100 and 0.005 or 0))*mult*sensorConfig[5]
+          local num = tonumber(sensorValue)
 
           -- default font size
           flags = sensorConfig[7] == 1 and 0 or MIDSIZE
-
-          -- for sensor 3,4,5,6 reduce font if necessary
-          if math.abs(value)*mult > 99999 then
-            flags = 0
-          end
-
-          local color = utils.colors.white
-          local sign = sensorConfig[6] == "+" and 1 or -1
-          -- max tracking, high values are critical
-          if math.abs(value) ~= 0 and status.showMinMaxValues == false then
-            color = ( sensorValue*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0) or (sensorValue*sign > sensorConfig[8]*sign and utils.colors.yellow or utils.colors.white))
-          end
-
-          lcd.setColor(CUSTOM_COLOR,color)
-
           local voffset = flags==0 and 6 or 0
-          -- if a lookup table exists use it!
-          if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
-            lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, customSensors.lookups[i][value] or value, flags+RIGHT+CUSTOM_COLOR)
+
+          if num then
+            -- numeric path (unchanged logic)
+            local value = (num + (mult == 100 and 0.005 or 0)) * mult * sensorConfig[5]
+
+            if math.abs(value)*mult > 99999 then
+              flags = 0
+            end
+
+            local color = utils.colors.white
+            local sign = sensorConfig[6] == "+" and 1 or -1
+
+            if math.abs(value) ~= 0 and status.showMinMaxValues == false then
+              color = ( num*sign > sensorConfig[9]*sign and lcd.RGB(255,70,0)
+                or (num*sign > sensorConfig[8]*sign and utils.colors.yellow or utils.colors.white))
+            end
+
+            lcd.setColor(CUSTOM_COLOR,color)
+
+            if customSensors.lookups[i] ~= nil and customSensors.lookups[i][value] ~= nil then
+              lcd.drawText(x+customSensorXY[i][3], customSensorXY[i][4]+voffset,
+                customSensors.lookups[i][value], flags+RIGHT+CUSTOM_COLOR)
+            else
+              lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset,
+                value, flags+RIGHT+prec+CUSTOM_COLOR)
+            end
+
           else
-            lcd.drawNumber(x+customSensorXY[i][3], customSensorXY[i][4]+voffset, value, flags+RIGHT+prec+CUSTOM_COLOR)
+            -- string path (flight modes, statuses, etc.)
+            lcd.setColor(CUSTOM_COLOR, utils.colors.white)
+
+            lcd.drawText(
+              x+customSensorXY[i][3],
+              customSensorXY[i][4]+voffset,
+              tostring(sensorValue),
+              flags+RIGHT+CUSTOM_COLOR
+            )
           end
         end
       end
