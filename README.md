@@ -8,11 +8,16 @@ If you like this project support it!
 
 **Check the [releases](https://github.com/yaapu/HorusMappingWidget/releases) section for latest versions**
 
-Supports OpenTX 2.3 and EdgeTX 2.7 or later
+Supports OpenTX 2.3 and EdgeTX 2.11 or later
 
-Offline GPS Mapping Widget for Horus and T16 radios.
+Offline GPS Mapping Widget for:
+-  800x480 Color LCD Radios such as Radiomaster TX16s MK3
+-  480x272  Color LCD Radios such as Radiomaster TX16s MK2, FrSky Horus X10 and X12, Jumper T16, FlySky PL18
+-  480x320  Color LCD Radios such as Jumper T15
+-  320x480  Color LCD Radios such as FlySky NV14 and EL18
+-  320x240  Color LCD Radios such as FlySky PA01
 
-It supports Ardupilot, iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry Device (like a Frsky or iBus GPS) that can send GPS info to OpenTX
+It supports iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry Device (like a Frsky or iBus GPS) that can send GPS info to OpenTX/EdgeTX
 
 800x480 Resolution (Radiomaster TX16s MK3)
 
