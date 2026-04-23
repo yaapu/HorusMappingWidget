@@ -14,8 +14,25 @@ Offline GPS Mapping Widget for Horus and T16 radios.
 
 It supports Ardupilot, iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry Device (like a Frsky or iBus GPS) that can send GPS info to OpenTX
 
-![image](https://user-images.githubusercontent.com/30294218/204130618-06812eeb-98ab-49e3-8f6d-bc0357c7aebf.png)
+800x480 Resolution (Radiomaster TX16s MK3)
 
+<img width="800" height="480" alt="screenshot_tx16smk3_26-04-23_17-49-28" src="https://github.com/user-attachments/assets/7795ed9c-dfdd-4823-99c9-43bc2cb1e3fa" />
+
+480x272 Resolution (Frsky Horus X10,X12, Radiomaster TX16s MK1 and MK2, Jumper T16, FlySky PL18)
+
+<img width="480" height="272" alt="screenshot_tx16s_26-04-23_17-47-17" src="https://github.com/user-attachments/assets/48d1147a-066a-4b8d-90a7-fc03a86d3fe8" />
+
+480x320 Resolution (Jumper T15)
+
+<img width="480" height="320" alt="screenshot_t15_26-04-23_17-49-04" src="https://github.com/user-attachments/assets/26fffdf2-2d7a-40ea-bd37-046e1087aa82" />
+
+320x480 Resolution (Flysky NV14 and EL18)
+
+<img width="320" height="480" alt="screenshot_nv14_26-04-23_17-45-46" src="https://github.com/user-attachments/assets/eef2088e-c811-4cd1-a81a-85783904c8ed" />
+
+320x240 Resolution (FlySky PA01)
+
+<img width="320" height="240" alt="screenshot_pa01_26-04-23_17-43-19" src="https://github.com/user-attachments/assets/2646aaf2-b851-4047-9c15-6e342e9390f5" />
 
 
 For basic functionality it only requires a **GPS sensor**.
