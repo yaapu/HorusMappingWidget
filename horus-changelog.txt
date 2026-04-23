@@ -33,3 +33,9 @@ Horus version 2.0.0 beta1
 - supports edgetx/opentx
 - fixed a trailing dots bug
 - right and bottom user sensors panels can be enbled/disabled 
+
+All radios version 2.2.0
+- added support for multiple radio layouts 800x480, 480x272, 480x320, 320x480, 320x240
+- added CRSF rssi on top bar
+- added support for TXT sensor type (i.e. flight modes)
+- fixed model switching bug
