@@ -4,7 +4,7 @@ If you like this project support it!
 
 # please read the [wiki](https://github.com/yaapu/HorusMappingWidget/wiki)
 
-# Yaapu Horus Mapping Widget for iNAV/Betaflight
+# Yaapu OpenTX/EdgeTX Mapping Widget
 
 **Check the [releases](https://github.com/yaapu/HorusMappingWidget/releases) section for latest versions**
 
