@@ -159,6 +159,9 @@ function layout.draw(widget,battery,alarms,frame,customSensors,gpsStatuses,leftP
     layout.drawCustomSensors(0, customSensors)
   end
 
+  if conf.enableHud == true then
+    drawMiniHud(3,48)
+  end
 end
 
 function layout.background(widget)

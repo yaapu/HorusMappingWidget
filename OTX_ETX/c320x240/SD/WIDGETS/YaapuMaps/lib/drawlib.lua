@@ -134,7 +134,7 @@ function drawLib.drawNoTelemetryData(telemetryEnabled)
     lcd.drawFilledRectangle(30+2,80+2, 260-4, 80-4, CUSTOM_COLOR)
     lcd.setColor(CUSTOM_COLOR,utils.colors.white)
     lcd.drawText(math.floor(LCD_W/2), 80+10, "no telemetry data", DBLSIZE+CUSTOM_COLOR+CENTER)
-    lcd.drawText(math.floor(LCD_W/2), 80+50, "Yaapu Mapping Widget 2.2.0 dev".."( "..'300cb39'..")", SMLSIZE+CUSTOM_COLOR+CENTER)
+    lcd.drawText(math.floor(LCD_W/2), 80+50, "Yaapu Mapping Widget 2.2.0 dev".."( "..'f5eb634'..")", SMLSIZE+CUSTOM_COLOR+CENTER)
   end
 end
 
@@ -146,7 +146,7 @@ function drawLib.drawNoGPSData()
     lcd.drawFilledRectangle(30+2,80+2, 260-4, 80-4, CUSTOM_COLOR)
     lcd.setColor(CUSTOM_COLOR,utils.colors.white)
     lcd.drawText(math.floor(LCD_W/2), 80+10, "...waiting for GPS", DBLSIZE+CUSTOM_COLOR+CENTER)
-    lcd.drawText(math.floor(LCD_W/2), 80+50, "Yaapu Mapping Widget 2.2.0 dev".."( "..'300cb39'..")", SMLSIZE+CUSTOM_COLOR+CENTER)
+    lcd.drawText(math.floor(LCD_W/2), 80+50, "Yaapu Mapping Widget 2.2.0 dev".."( "..'f5eb634'..")", SMLSIZE+CUSTOM_COLOR+CENTER)
     return true
   end
   return false

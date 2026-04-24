@@ -49,6 +49,8 @@ local status = {
   lastLat = nil,
   lastLon = nil,
   homeSet = false,
+  homeTimerStart = 0,
+  homeTimerRunning = false,
   avgSpeed = {
     lastSampleTime = nil,
     avgTravelDist = 0,
@@ -236,7 +238,6 @@ utils.lcdBacklightOn = function()
   backlightLastTime = getTime()/100 -- seconds
 end
 
--- Cache delle funzioni matematiche (da mettere fuori dalla funzione utils)
 local sin  = math.sin
 local cos  = math.cos
 local sqrt = math.sqrt
@@ -267,12 +268,10 @@ function utils.haversine(lat1, lon1, lat2, lon2)
 end
 
 function utils.getAngleFromLatLon(lat1, lon1, lat2, lon2)
-    -- Conversione in radianti usando moltiplicazione (più veloce di rad())
     local la1 = lat1 * pi_180
     local la2 = lat2 * pi_180
     local dLo = (lon2 - lon1) * pi_180
 
-    -- Pre-calcolo di sin/cos che vengono usati più volte
     local sinLa1 = sin(la1)
     local cosLa1 = cos(la1)
     local sinLa2 = sin(la2)
@@ -280,14 +279,10 @@ function utils.getAngleFromLatLon(lat1, lon1, lat2, lon2)
     local cosDLo = cos(dLo)
     local sinDLo = sin(dLo)
 
-    -- Calcolo componenti x, y
     local y = sinDLo * cosLa2
     local x = cosLa1 * sinLa2 - sinLa1 * cosLa2 * cosDLo
     
-    -- Conversione finale in gradi e normalizzazione
-    -- math.deg è più veloce del calcolo manuale * 180 / pi
     local a = deg(atan2(y, x))
-
     return (a + 360) % 360
 end
 
@@ -314,24 +309,6 @@ function utils.updateCog()
         status.lastLat = lat
         status.lastLon = lon
     end
-end
-
-function utils.updateCog2()
-  if status.lastLat == nil then
-    status.lastLat = telemetry.lat
-  end
-  if status.lastLon == nil then
-    status.lastLon = telemetry.lon
-  end
-  if status.lastLat ~= nil and status.lastLon ~= nil and status.lastLat ~= telemetry.lat and status.lastLon ~= telemetry.lon then
-    local cog = utils.getAngleFromLatLon(status.lastLat, status.lastLon, telemetry.lat, telemetry.lon)
-    if cog ~= nil and telemetry.groundSpeed > 1 then
-      telemetry.cog = cog
-    end
-    -- update last GPS coords
-    status.lastLat = telemetry.lat
-    status.lastLon = telemetry.lon
-  end
 end
 
 --[[
@@ -634,6 +611,8 @@ local function task5HzA(widget, now)
   utils.checkHomeResetChannel(widget)
 end
 
+local RAD2DEG = 57.296
+
 local function task5HzB(widget, now)
   -- update gps telemetry data
   local gpsdata = nil
@@ -653,9 +632,45 @@ local function task5HzB(widget, now)
   utils.updateCog()
 end
 
+
+function task4HzUpdateHome(widget, now)
+  if telemetry.lat == nil then
+    return
+  end
+  if telemetry.lon == nil then
+    return
+  end
+  if status.homeSet then 
+    return 
+  end
+  if telemetry.groundSpeed < conf.horSpeedMultiplier*0.5 then
+    if not status.homeTimerRunning then
+      status.homeTimerStart = getTime()
+      status.homeTimerRunning = true
+    else
+      local elapsed = getTime() - status.homeTimerStart
+      
+      if elapsed >= 500 then
+        telemetry.homeLat = telemetry.lat
+        telemetry.homeLon = telemetry.lon
+        status.homeSet = true
+        status.homeTimerRunning = false
+      end
+    end
+  else
+    if status.homeTimerRunning  then
+      status.homeTimerRunning = false
+      status.homeTimerStart = 0
+    end
+  end
+end
+
 local function resetHome()
   telemetry.homeLat = telemetry.lat
   telemetry.homeLon = telemetry.lon
+  status.homeSet = true
+  status.homeTimerRunning = false
+  status.homeTimerStart = 0
   status.avgSpeed.avgTravelDist = 0
   status.avgSpeed.avgTravelTime = 0
   status.avgSpeed.travelDist = 0
@@ -677,16 +692,6 @@ local function task2Hz(widget, now)
 
   setTelemetryValue(0x084E, 0, 0, math.floor(telemetry.yaw), 20 , 0 , "Hdg")
   setTelemetryValue(0x083E, 0, 0, telemetry.groundSpeed, 5 , 0 , "GSpd")
-
-  -- wait 10 seconds before auto setting home
-  if telemetry.homeLat == nil and telemetry.homeLon == nil and telemetry.lat ~= nil and telemetry.lon ~= nil and telemetry.groundSpeed < 1 then
-    if gpsLockTimer == nil then
-      gpsLockTimer = getTime()
-    end
-    if getTime() - gpsLockTimer > 1000 then
-      resetHome()
-    end
-  end
 
     
   if getValue("1RSS") ~= nil then
@@ -732,6 +737,23 @@ local function taskAvgSpeed2Hz(widget, now)
   end
 end
 
+local function task4HzUpdateAttitude(widget, now)
+  if conf.enableHud == true then
+
+    if widget.options["ROLL Source"] ~= nil then
+      local sensorInfo = getFieldInfo(widget.options["ROLL Source"])
+      local attitudeScale = sensorInfo == nil and 1 or (sensorInfo.unit == 21 and RAD2DEG or 1)
+      telemetry.roll = attitudeScale* getValue(widget.options["ROLL Source"])
+    end
+  
+    if widget.options["PITCH Source"] ~= nil then
+      local sensorInfo = getFieldInfo(widget.options["PITCH Source"])
+      local attitudeScale = sensorInfo == nil and 1 or (sensorInfo.unit == 21 and RAD2DEG or 1)
+      telemetry.pitch = attitudeScale * getValue(widget.options["PITCH Source"])
+    end
+  end
+end
+
 local function task1Hz(widget, now)
   if status.modelString == nil then
     local info = model.getInfo()
@@ -748,6 +770,8 @@ end
 local tasks = {
   {0, 20,   task5HzA},
   {0, 20,   task5HzB},
+  {0, 30,   task4HzUpdateHome},
+  {0, 30,   task4HzUpdateAttitude},
   {0, 50,   task2Hz},
   {0, 50,   taskAvgSpeed2Hz},
   {0, 100,  task1Hz},
@@ -828,10 +852,9 @@ end
 --------------------------------------------------------------------------------
 
 local options = {
---[[
-  { "GPS Source", SOURCE, 1 },
-  { "RSSI Source", SOURCE, 1 },
---]]
+  --{ "GPS Source", SOURCE, 1 },
+  { "ROLL Source", SOURCE, 1 },
+  { "PITCH Source", SOURCE, 1 },
 }
 -- shared init flag
 local initDone = 0

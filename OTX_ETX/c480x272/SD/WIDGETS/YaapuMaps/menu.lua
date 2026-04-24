@@ -27,6 +27,7 @@ local menuItems = {
   {"Heading source unit:", 1, "HDGU", 1, { "deg", "rad" }, { 1, 57.29578 } }, -- radians to degrees rad * (180/pi)
   {"enable right panel:", 1, "SBE", 2, { "yes", "no" }, { true, false } },
   {"enable bottom panel:", 1, "BBE", 2, { "yes", "no" }, { true, false } },
+  {"enable mini hud:", 1, "HUD", 2, { "yes", "no" }, { true, false } },
   {"home reset channel:", 0, "HRST", 0, 0, 32,nil,0,1 },
   {"telemetry config file:", 1, "SEN", 1, { "per model", "global profile 1", "global profile 2", "global profile 3" }, { 0, 1, 2, 3 } },
   {"air/groundspeed unit:", 1, "HSPD", 1, { "m/s", "km/h", "mph", "kn" }, { 1, 3.6, 2.23694, 1.94384} },
@@ -265,7 +266,7 @@ local function drawConfigMenuBars()
   lcd.drawRectangle(0, LCD_H-20, LCD_W, 20, CUSTOM_COLOR)
   lcd.setColor(CUSTOM_COLOR,WHITE)
   lcd.drawText(0,0, model.getInfo().name, CUSTOM_COLOR)
-  lcd.drawText(LCD_W,2,"Yaapu Mapping Widget 2.2.0 dev".."( "..'300cb39'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
+  lcd.drawText(LCD_W,2,"Yaapu Mapping Widget 2.2.0 dev".."( "..'f5eb634'..")",SMLSIZE+CUSTOM_COLOR+RIGHT)
   lcd.drawText(2,LCD_H-20+1,getConfigFilename(),CUSTOM_COLOR)
   lcd.drawText(LCD_W,LCD_H-20+1,itemIdx,CUSTOM_COLOR+RIGHT)
 end

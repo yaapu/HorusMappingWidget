@@ -120,8 +120,8 @@ function layout.drawCustomSensors(x,customSensors)
 end
 
 local function drawMiniHud(x,y)
-  libs.drawLib.drawArtificialHorizon(x, y, 48, 36, nil, lcd.RGB(0x7B, 0x9D, 0xFF), lcd.RGB(0x63, 0x30, 0x00), 6, 6.5, 1.3)
-  lcd.drawBitmap(utils.getBitmap("hud_48x48a"), 3-1, 48-10)
+  libs.drawLib.drawArtificialHorizon(x, y, 92, 70, nil, lcd.RGB(0x7B, 0x9D, 0xFF), lcd.RGB(0x63, 0x30, 0x00), 6, 6.5, 1.3)
+  lcd.drawBitmap(utils.getBitmap("hud_92x70"), 6, 70)
 end
 
 function layout.draw(widget,battery,alarms,frame,customSensors,gpsStatuses,leftPanel,centerPanel,rightPanel)
@@ -159,6 +159,9 @@ function layout.draw(widget,battery,alarms,frame,customSensors,gpsStatuses,leftP
     layout.drawCustomSensors(0, customSensors)
   end
 
+  if conf.enableHud == true then
+    drawMiniHud(6,70)
+  end
 end
 
 function layout.background(widget)
