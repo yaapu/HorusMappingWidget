@@ -23,7 +23,6 @@ It supports iNAV, Betaflight, Crossfire and whatever FC, firmware or Telemetry D
 
 <img width="800" height="480" alt="screenshot_tx16smk3_26-04-24_13-23-34" src="https://github.com/user-attachments/assets/a6687295-5589-4b92-9fa4-31e5c30d39b2" />
 
-
 <img width="800" height="480" alt="screenshot_tx16smk3_26-04-23_17-49-28" src="https://github.com/user-attachments/assets/7795ed9c-dfdd-4823-99c9-43bc2cb1e3fa" />
 
 480x272 Resolution (Frsky Horus X10,X12, Radiomaster TX16s MK1 and MK2, Jumper T16, FlySky PL18)
