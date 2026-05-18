@@ -182,7 +182,7 @@ local function gmapcatcher_tiles_to_path(tile_x, tile_y, level)
 end
 
 local function qgis_tiles_to_path(tile_x, tile_y, level)
-  return string.format("/%d/%d/%d.png", level, tile_x, tile_y)
+  return string.format("/%d/%d/%d.jpg", level, tile_x, tile_y)
 end
 
 local function getTileBitmap(tilePath)
